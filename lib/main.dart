@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         primarySwatch: Colors.red,
       ),
-      home: MyHomePage(title: 'Random Chess'),
+      home: MyHomePage(title: 'Random Chess Generator'),
     );
   }
 }
@@ -252,7 +252,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text("Random Chess"),
+        title: Text("Random Chess Generator"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.help),
+            onPressed: () {},
+          )
+        ],
       ),
       body: Center(
         child: Column(
