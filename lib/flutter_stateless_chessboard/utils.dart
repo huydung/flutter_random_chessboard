@@ -1,4 +1,4 @@
-import 'package:chess/chess.dart' as ch;
+import '../chess.dart' as ch;
 import 'types.dart';
 
 String getSquare(int rankIndex, int fileIndex, String orientation) {
