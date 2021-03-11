@@ -3,6 +3,10 @@
    <application
         android:label="randomchesshdi"
         android:icon="@mipmap/ic_launcher">
+        <!-- Google Ads SDK -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-4757047581054358~8913442698"/>
         <activity
             android:name=".MainActivity"
             android:launchMode="singleTop"

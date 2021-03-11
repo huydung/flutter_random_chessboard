@@ -47,3 +47,4 @@ app.*.map.json
 
 # XCode Build and Cache
 /ios/build/XCBuildData
+/pubspec.lock
