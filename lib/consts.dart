@@ -2,6 +2,7 @@ const int PIXELS_PER_CM = 38;
 const int PHONE_WIDTH_CM = 9;
 const int K_PHONE_WIDTH_PX = 420;
 enum RandomizeMode { FULL_RANDOM, FISCHER }
+const String K_DEFAULT_AD_LINK = 'https://www.linkedin.com/in/nguyenhuydung/';
 
 const List<String> K_FEN960_LIST = [
   "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w - - 0 1",

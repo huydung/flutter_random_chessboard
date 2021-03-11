@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'ad_helper.dart';
 import 'flutter_stateless_chessboard/flutter_stateless_chessboard.dart';
 import 'consts.dart';
 import 'dart:math';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
   runApp(MyApp());
 }
 
@@ -14,7 +17,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Random Chess',
+      title: 'Random Chess Generator /by HDI',
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.red,
@@ -28,10 +31,6 @@ class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
   final String title;
 
-  Future<InitializationStatus> _initGoogleMobileAds() {
-    return MobileAds.instance.initialize();
-  }
-
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
@@ -42,27 +41,31 @@ class _MyHomePageState extends State<MyHomePage> {
 
   BannerAd _ad;
   bool _isAdLoaded = false;
+  double _screenWidth = 320;
 
   @override
   void initState() {
     super.initState();
-    _ad = BannerAd(
-      adUnitId: AdHelper.bannerAdUnitId,
-      size: AdSize.banner,
-      request: AdRequest(),
-      listener: AdListener(
-        onAdLoaded: (_) {
-          setState(() {
-            _isAdLoaded = true;
-          });
-        },
-        onAdFailedToLoad: (_, error) {
-          print('Ad load failed (code=${error.code} message=${error.message})');
-        },
-      ),
-    );
+    Future.delayed(Duration(seconds: 3), () {
+      _ad = BannerAd(
+        adUnitId: AdHelper.bannerAdUnitId,
+        size: AdSize.largeBanner,
+        request: AdRequest(),
+        listener: AdListener(
+          onAdLoaded: (_) {
+            setState(() {
+              _isAdLoaded = true;
+            });
+          },
+          onAdFailedToLoad: (_, error) {
+            print(
+                'Ad load failed (code=${error.code} message=${error.message})');
+          },
+        ),
+      );
 
-    _ad.load();
+      _ad.load();
+    });
   }
 
   @override
@@ -71,12 +74,27 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
+  _launchURL(String url) async {
+    //const url = 'https://flutter.dev';
+    if (await canLaunch(url) != null) {
+      await launch(url);
+    } else {
+      throw 'Could not launch $url';
+    }
+  }
+
   RandomizeMode selectedRandomMode = RandomizeMode.FULL_RANDOM;
   double centerUIpadding = 0;
 
   Widget _buildBannerAds() {
-    Widget widgetAdLoading = Text('Loading Ads');
-
+    Widget widgetAdLoading = GestureDetector(
+      onTap: () {
+        _launchURL(K_DEFAULT_AD_LINK);
+      },
+      child: Image(
+        image: AssetImage('assets/img/default_banner.png'),
+      ),
+    );
     if (_isAdLoaded) {
       return Container(
         child: AdWidget(ad: _ad),
@@ -88,7 +106,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return Container(
         color: Colors.grey[800],
         child: widgetAdLoading,
-        height: AdSize.banner.height.toDouble(),
+        width: _screenWidth,
         alignment: Alignment.center,
       );
     }
@@ -226,9 +244,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    if (size.width > K_PHONE_WIDTH_PX) {
-      centerUIpadding = (size.width - K_PHONE_WIDTH_PX) * 0.5;
+    _screenWidth = MediaQuery.of(context).size.width.toDouble();
+    if (_screenWidth > K_PHONE_WIDTH_PX) {
+      centerUIpadding = (_screenWidth - K_PHONE_WIDTH_PX) * 0.5;
     }
     //print('Queried Size: ${size.width}, centerUIpadding: $centerUIpadding');
 
@@ -241,17 +259,17 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: size.width,
-              height: size.width,
+              width: _screenWidth,
+              height: _screenWidth,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    child: _buildChessboard(size.width),
+                    child: _buildChessboard(_screenWidth),
                   ),
                   Container(
-                    width: size.width,
-                    height: size.width / 2,
+                    width: _screenWidth,
+                    height: _screenWidth / 2,
                     color: Colors.black.withAlpha(96),
                     padding: EdgeInsets.symmetric(
                       horizontal: centerUIpadding,
