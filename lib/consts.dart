@@ -1,7 +1,12 @@
+import 'package:flutter/material.dart';
+
 const int PIXELS_PER_CM = 38;
 const int PHONE_WIDTH_CM = 9;
 const int K_PHONE_WIDTH_PX = 420;
 enum RandomizeMode { FULL_RANDOM, FISCHER }
+const Color K_HDI_DARK_RED = Color(0xffC66969);
+const Color K_HDI_LIGHT_GREY = Color(0xffD6D6D6);
+
 const String K_DEFAULT_AD_LINK = 'https://www.linkedin.com/in/nguyenhuydung/';
 
 const List<String> K_FEN960_LIST = [
