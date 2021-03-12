@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:randomchesshdi/chess.dart' as ch;
 import 'helpers.dart';
 import 'flutter_stateless_chessboard/flutter_stateless_chessboard.dart';
 import 'consts.dart';
-import 'dart:math';
+import 'dart:math' as math;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,11 +41,14 @@ class _MyHomePageState extends State<MyHomePage> {
   BannerAd _ad;
   bool _isAdLoaded = false;
   double _screenWidth = 320;
+  double _boardWidth = 320;
   RandomizeMode selectedRandomMode = RandomizeMode.FULL_RANDOM;
   double centerUIpadding = 0;
+  var _selectedMode = [false, false, true];
 
   void loadSavedFen() async {
     final savedFen = await DataHelper.getLastFEN();
+    ch.Chess.instance.setFEN(savedFen);
     setState(() {
       fen = savedFen;
     });
@@ -54,7 +57,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    ch.Chess.instance.setFEN(ChessHelper.STANDARD_STARTING_POSITION);
     loadSavedFen();
+
     Future.delayed(Duration(seconds: 3), () {
       _ad = BannerAd(
         adUnitId: AdHelper.bannerAdUnitId,
@@ -103,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
       return Container(
         color: Colors.grey[800],
         child: widgetAdLoading,
-        width: _screenWidth,
+        width: AdSize.largeBanner.width.toDouble(),
         alignment: Alignment.center,
       );
     }
@@ -113,90 +118,65 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildChessboard(width) {
     return Chessboard(
-      fen: fen,
-      size: width,
-      darkSquareColor: K_HDI_DARK_RED,
-      lightSquareColor: K_HDI_LIGHT_GREY,
-      orientation: 'w',
-      onMove: (move) {
-        print("move from ${move.from} to ${move.to}");
-      },
-    );
+        fen: fen,
+        size: width,
+        darkSquareColor: K_HDI_DARK_RED,
+        lightSquareColor: K_HDI_LIGHT_GREY,
+        orientation: 'w',
+        onMove: (move) {
+          bool moveMade = ch.Chess.instance
+              .move({'from': move.from, 'to': move.to, 'promotion': 'q'});
+          print(
+              "Tried to move from ${move.from} to ${move.to}. Success: $moveMade");
+          if (moveMade) {
+            setState(() {
+              fen = ch.Chess.instance.fen;
+              DataHelper.saveFEN(fen);
+            });
+          }
+        });
   }
 
   Widget _buildRandomizerUI() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        RadioListTile<RandomizeMode>(
-          title: const Text('Fully Randomized'),
-          value: RandomizeMode.FULL_RANDOM,
-          groupValue: selectedRandomMode,
-          onChanged: (RandomizeMode value) {
+        ToggleButtons(
+          direction: Axis.horizontal,
+          borderRadius: BorderRadius.all(Radius.circular(10.0)),
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              child: Text('Random Board'),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              child: Text('Chess960'),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              child: Text('Standard'),
+            ),
+          ],
+          isSelected: _selectedMode,
+          onPressed: (int index) {
+            var _newMode = [false, false, false];
+            _newMode[index] = true;
             setState(() {
-              selectedRandomMode = value;
+              _selectedMode = _newMode;
+              if (index == 0)
+                fen = ChessHelper.generateRandomPosition(
+                    RandomizeMode.FULL_RANDOM);
+              else if (index == 1)
+                fen = ChessHelper.generateRandomPosition(RandomizeMode.FISCHER);
+              else
+                fen = ChessHelper.STANDARD_STARTING_POSITION;
+              ch.Chess.instance.setFEN(fen);
+              DataHelper.saveFEN(fen);
             });
           },
-          secondary: IconButton(
-            icon: Icon(Icons.info_outline_rounded),
-            onPressed: () {},
-          ),
         ),
-        RadioListTile<RandomizeMode>(
-          title: const Text('Chess690 - Fischer'),
-          value: RandomizeMode.FISCHER,
-          groupValue: selectedRandomMode,
-          onChanged: (RandomizeMode value) {
-            setState(() {
-              selectedRandomMode = value;
-            });
-          },
-          secondary: IconButton(
-            icon: Icon(Icons.info_outline_rounded),
-            onPressed: () {},
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 5.0, horizontal: 24.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Expanded(
-                child: ElevatedButton.icon(
-                  icon: Icon(Icons.cached),
-                  label: Text('GENERATE'),
-                  onPressed: () {
-                    setState(() {
-                      fen = ChessHelper.generateRandomPosition(
-                          selectedRandomMode);
-                      DataHelper.saveFEN(fen);
-                    });
-                  },
-                ),
-              ),
-              SizedBox(
-                width: 30,
-              ),
-              Expanded(
-                child: ElevatedButton.icon(
-                  icon: Icon(Icons.play_circle_fill_outlined),
-                  label: Text('PLAY!'),
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                        (states) => Colors.green[800]),
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      fen = ChessHelper.generateRandomPosition(
-                          selectedRandomMode);
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
-        )
       ],
     );
   }
@@ -207,6 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_screenWidth > K_PHONE_WIDTH_PX) {
       centerUIpadding = (_screenWidth - K_PHONE_WIDTH_PX) * 0.5;
     }
+    _boardWidth = _screenWidth > 560 ? 560 : _screenWidth;
     //print('Queried Size: ${size.width}, centerUIpadding: $centerUIpadding');
 
     return Scaffold(
@@ -219,33 +200,56 @@ class _MyHomePageState extends State<MyHomePage> {
           )
         ],
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               width: _screenWidth,
-              height: _screenWidth,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    child: _buildChessboard(_screenWidth),
+              padding: EdgeInsets.symmetric(vertical: 10.0),
+              child: Transform.rotate(
+                angle: math.pi,
+                child: Text(
+                  (ch.Chess.instance.playerToMove == 'b'
+                      ? 'YOUR TURN'
+                      : '-- WAIT --'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 24.0,
+                    backgroundColor: (ch.Chess.instance.playerToMove == 'b'
+                        ? Colors.green[800]
+                        : null),
                   ),
-                  Container(
-                    width: _screenWidth,
-                    height: _screenWidth / 2,
-                    color: Colors.black.withAlpha(96),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: centerUIpadding,
-                    ),
-                    child: _buildRandomizerUI(),
-                  )
-                ],
+                ),
               ),
             ),
-            SizedBox(
-              height: 15.0,
+            Container(
+              width: _boardWidth,
+              height: _boardWidth,
+              child: _buildChessboard(_boardWidth),
+            ),
+            Container(
+              width: _screenWidth,
+              padding: EdgeInsets.symmetric(vertical: 10.0),
+              child: Text(
+                (ch.Chess.instance.playerToMove == 'w'
+                    ? 'YOUR TURN'
+                    : '-- WAIT --'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 24.0,
+                  backgroundColor: (ch.Chess.instance.playerToMove == 'w'
+                      ? Colors.green[800]
+                      : null),
+                ),
+              ),
+            ),
+            Divider(
+              height: 20.0,
+            ),
+            _buildRandomizerUI(),
+            Divider(
+              height: 20.0,
             ),
             _buildBannerAds(),
             Container(

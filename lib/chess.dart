@@ -1,4 +1,5 @@
 library chess;
+
 /*  Copyright (c) 2014, David Kopec (my first name at oaksnow dot com)
  *  Released under the MIT license
  *  https://github.com/davecom/chess.dart/blob/master/LICENSE
@@ -660,6 +661,10 @@ class Chess {
   List<Piece> board = new List(128);
   ColorMap<int> kings = new ColorMap(EMPTY);
   Color turn = WHITE;
+  String get playerToMove {
+    return turn == WHITE ? 'w' : 'b';
+  }
+
   ColorMap<int> castling = new ColorMap(0);
   int ep_square = EMPTY;
   int half_moves = 0;
@@ -667,29 +672,33 @@ class Chess {
   List<State> history = [];
   Map header = {};
 
-  /// By default start with the standard chess starting position
-  Chess() {
-    load(DEFAULT_POSITION);
+  static Chess _instance;
+
+  Chess._();
+
+  static Chess get instance {
+    _instance = _instance ?? Chess._();
+    return _instance;
   }
 
   /// Start with a position from a FEN
-  Chess.fromFEN(String fen) {
-    load(fen);
+  setFEN(String fen) {
+    _instance.load(fen);
   }
 
   /// Deep copy of the current Chess instance
-  Chess copy() {
-    return new Chess()
-      ..board = new List<Piece>.from(this.board)
-      ..kings = new ColorMap<int>.clone(this.kings)
-      ..turn = this.turn
-      ..castling = new ColorMap<int>.clone(this.castling)
-      ..ep_square = this.ep_square
-      ..half_moves = this.half_moves
-      ..move_number = this.move_number
-      ..history = new List<State>.from(this.history)
-      ..header = new Map.from(this.header);
-  }
+  // Chess copy() {
+  //   return new Chess()
+  //     ..board = new List<Piece>.from(this.board)
+  //     ..kings = new ColorMap<int>.clone(this.kings)
+  //     ..turn = this.turn
+  //     ..castling = new ColorMap<int>.clone(this.castling)
+  //     ..ep_square = this.ep_square
+  //     ..half_moves = this.half_moves
+  //     ..move_number = this.move_number
+  //     ..history = new List<State>.from(this.history)
+  //     ..header = new Map.from(this.header);
+  // }
 
   /// Reset all of the instance variables
   clear() {
@@ -923,7 +932,10 @@ class Chess {
     String epflags = (ep_square == EMPTY) ? '-' : algebraic(ep_square);
     String turnStr = (turn == Color.WHITE) ? 'w' : 'b';
 
-    return [fen, turnStr, cflags, epflags, half_moves, move_number].join(' ');
+    String _fen =
+        [fen, turnStr, cflags, epflags, half_moves, move_number].join(' ');
+    print('current FEN = $fen');
+    return _fen;
   }
 
   /// Updates [header] with the List of args and returns it

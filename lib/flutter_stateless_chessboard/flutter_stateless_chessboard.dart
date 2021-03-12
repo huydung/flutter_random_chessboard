@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'types.dart';
 import 'utils.dart';
 import 'widgets/chess_square.dart';
+import '../chess.dart' as ch;
 
 final zeroToSeven = List.generate(8, (index) => index);
 
@@ -33,10 +34,21 @@ class Chessboard extends StatefulWidget {
 class _ChessboardState extends State<Chessboard> {
   HalfMove _clickMove;
 
+  Map<String, Piece> _pieceMap = {};
+  var _squares;
   @override
   Widget build(BuildContext context) {
     final squareSize = widget.size / 8;
-    final pieceMap = getPieceMap(widget.fen);
+    _pieceMap.clear();
+
+    _squares = ch.Chess.SQUARES.keys.toList();
+    _squares.forEach((square) {
+      final piece = ch.Chess.instance.get(square);
+      if (piece != null) {
+        _pieceMap[square] = Piece(
+            piece.type.toString(), piece.color == ch.Color.BLACK ? 'b' : 'w');
+      }
+    });
 
     return Container(
       width: widget.size,
@@ -54,8 +66,8 @@ class _ChessboardState extends State<Chessboard> {
                 name: square,
                 color: color,
                 size: squareSize,
-                highlight: _clickMove?.square == square,
-                piece: pieceMap[square],
+                highlight: false,
+                piece: _pieceMap[square],
                 onDrop: (move) {
                   if (widget.onMove != null) {
                     widget.onMove(move);
@@ -63,23 +75,23 @@ class _ChessboardState extends State<Chessboard> {
                   }
                 },
                 onClick: (halfMove) {
-                  if (_clickMove != null) {
-                    if (_clickMove.square == halfMove.square) {
-                      setClickMove(null);
-                    } else if (_clickMove.piece.color ==
-                        halfMove.piece?.color) {
-                      setClickMove(halfMove);
-                    } else {
-                      widget.onMove(ShortMove(
-                        from: _clickMove.square,
-                        to: halfMove.square,
-                        promotion: 'q',
-                      ));
-                    }
-                    setClickMove(null);
-                  } else if (halfMove.piece != null) {
-                    setClickMove(halfMove);
-                  }
+                  // if (_clickMove != null) {
+                  //   if (_clickMove.square == halfMove.square) {
+                  //     setClickMove(null);
+                  //   } else if (_clickMove.piece.color ==
+                  //       halfMove.piece?.color) {
+                  //     setClickMove(halfMove);
+                  //   } else {
+                  //     widget.onMove(ShortMove(
+                  //       from: _clickMove.square,
+                  //       to: halfMove.square,
+                  //       promotion: 'q',
+                  //     ));
+                  //   }
+                  //   setClickMove(null);
+                  // } else if (halfMove.piece != null) {
+                  //   setClickMove(halfMove);
+                  // }
                 },
               );
             }).toList(),

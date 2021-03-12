@@ -1,10 +1,11 @@
 import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 import 'package:flutter/material.dart';
+import 'package:randomchesshdi/chess.dart' as ch;
 import '../types.dart';
 import 'square.dart';
 import 'dart:math' as math;
 
-class ChessPiece extends StatelessWidget {
+class ChessPiece extends StatefulWidget {
   final String squareName;
   final Color squareColor;
   final Piece piece;
@@ -18,16 +19,49 @@ class ChessPiece extends StatelessWidget {
   });
 
   @override
+  _ChessPieceState createState() => _ChessPieceState();
+}
+
+class _ChessPieceState
+    extends State<ChessPiece> /* with TickerProviderStateMixin */ {
+  // AnimationController _controller;
+  // Animation<double> _animation;
+  // Tween<double> _tween = Tween(begin: 0.9, end: 1.1);
+  // @override
+  // void dispose() {
+  //   super.dispose();
+  //   _controller.dispose();
+  // }
+
+  @override
+  initState() {
+    super.initState();
+    // _controller = AnimationController(
+    //   duration: const Duration(milliseconds: 500),
+    //   vsync: this,
+    // );
+    // _controller.repeat(reverse: true);
+    // _animation = _tween
+    //     .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    //_controller.forward();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final pieceWidget = _buildPiece();
 
     return Draggable<HalfMove>(
-      data: HalfMove(squareName, piece),
-      child: pieceWidget,
+      data: HalfMove(widget.squareName, widget.piece),
+      child: Container(
+        width: widget.size,
+        height: widget.size,
+        child: pieceWidget,
+      ),
       feedback: pieceWidget,
       childWhenDragging: Square(
-        color: squareColor,
-        size: size,
+        color: widget.squareColor,
+        size: widget.size,
       ),
     );
   }
@@ -35,33 +69,64 @@ class ChessPiece extends StatelessWidget {
   Widget _buildPiece() {
     //print(piece.toString());
     //huydung_mod: Added Transform.rotate to rotate the pieces
-    switch (piece.toString()) {
+
+    var pieceWidget;
+    switch (widget.piece.toString()) {
       case 'wr':
-        return WhiteRook(size: size);
+        pieceWidget = WhiteRook(size: widget.size);
+        break;
       case 'wn':
-        return WhiteKnight(size: size);
+        pieceWidget = WhiteKnight(size: widget.size);
+        break;
       case 'wb':
-        return WhiteBishop(size: size);
+        pieceWidget = WhiteBishop(size: widget.size);
+        break;
       case 'wk':
-        return WhiteKing(size: size);
+        pieceWidget = WhiteKing(size: widget.size);
+        break;
       case 'wq':
-        return WhiteQueen(size: size);
+        pieceWidget = WhiteQueen(size: widget.size);
+        break;
       case 'wp':
-        return WhitePawn(size: size);
+        pieceWidget = WhitePawn(size: widget.size);
+        break;
       case 'br':
-        return Transform.rotate(angle: math.pi, child: BlackRook(size: size));
+        pieceWidget = BlackRook(size: widget.size);
+        break;
       case 'bn':
-        return Transform.rotate(angle: math.pi, child: BlackKnight(size: size));
+        pieceWidget = BlackKnight(size: widget.size);
+        break;
       case 'bb':
-        return Transform.rotate(angle: math.pi, child: BlackBishop(size: size));
+        pieceWidget = BlackBishop(size: widget.size);
+        break;
       case 'bk':
-        return Transform.rotate(angle: math.pi, child: BlackKing(size: size));
+        pieceWidget = BlackKing(size: widget.size);
+        break;
       case 'bq':
-        return Transform.rotate(angle: math.pi, child: BlackQueen(size: size));
+        pieceWidget = BlackQueen(size: widget.size);
+        break;
       case 'bp':
-        return Transform.rotate(angle: math.pi, child: BlackPawn(size: size));
+        pieceWidget = BlackPawn(size: widget.size);
+        break;
       default:
         return null;
     }
+    if (widget.piece.color == 'b') {
+      pieceWidget = Transform.rotate(
+        angle: math.pi,
+        child: pieceWidget,
+      );
+    }
+
+    // if (widget.piece.color == ch.Chess.instance.playerToMove &&
+    //     widget.piece.type == 'k') {
+    //   pieceWidget = ScaleTransition(
+    //     scale: _animation,
+    //     alignment: Alignment.center,
+    //     child: pieceWidget,
+    //   );
+    // }
+
+    return pieceWidget;
   }
 }

@@ -24,7 +24,7 @@ class Square extends StatelessWidget {
         ),
         if (highlight == true)
           Container(
-            color: Color.fromRGBO(128, 128, 128, .3),
+            color: Color.fromRGBO(190, 1, 42, 1.0),
             height: size,
             width: size,
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../types.dart';
 import 'chess_piece.dart';
 import 'square.dart';
+import '../../chess.dart' as ch;
 
 class ChessSquare extends StatelessWidget {
   final String name;
@@ -12,18 +13,27 @@ class ChessSquare extends StatelessWidget {
   final void Function(HalfMove move) onClick;
   final bool highlight;
 
-  ChessSquare({
-    this.name,
-    @required this.color,
-    @required this.size,
-    this.highlight = false,
-    this.piece,
-    this.onDrop,
-    this.onClick,
-  });
+  ChessSquare(
+      {this.name,
+      @required this.color,
+      @required this.size,
+      this.highlight = false,
+      this.piece,
+      this.onDrop,
+      this.onClick});
 
   @override
   Widget build(BuildContext context) {
+    bool redHighlight = false;
+    if (ch.Chess.instance.in_check) {
+      if (piece != null) {
+        if (piece.type == 'k') {
+          if (ch.Chess.instance.playerToMove == piece.color) {
+            redHighlight = true;
+          }
+        }
+      }
+    }
     return DragTarget<HalfMove>(
       onWillAccept: (data) {
         return data.square != name;
@@ -38,7 +48,6 @@ class ChessSquare extends StatelessWidget {
         }
       },
       builder: (context, candidateData, rejectedData) {
-        //huydung_mod
         Widget chessPieceWidget = piece != null
             ? ChessPiece(
                 squareName: name,
@@ -47,9 +56,6 @@ class ChessSquare extends StatelessWidget {
                 size: size,
               )
             : null;
-        //Color squareColor =
-        color.withAlpha(chessPieceWidget == null ? 46 : 255);
-        //endof huydung_mod
 
         return InkWell(
           onTap: () {
@@ -60,7 +66,7 @@ class ChessSquare extends StatelessWidget {
           child: Square(
             size: size,
             color: color,
-            highlight: highlight,
+            highlight: redHighlight,
             child: chessPieceWidget,
           ),
         );
