@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:randomchesshdi/blinking_turn_indicator.dart';
 import 'package:randomchesshdi/chess.dart' as ch;
 import 'helpers.dart';
 import 'flutter_stateless_chessboard/flutter_stateless_chessboard.dart';
@@ -137,6 +138,37 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
+  Widget _buildTurnIndicator(ch.Color forSide) {
+    if (forSide == ch.Chess.instance.turn) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          BlinkingDotIndicator(
+            color: Colors.green,
+            size: 20.0,
+          ),
+          SizedBox(
+            width: 5.0,
+          ),
+          Text(
+            "YOUR TURN",
+            style: TextStyle(fontSize: 20.0),
+          ),
+        ],
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "-- WAIT --",
+            style: TextStyle(fontSize: 20.0, color: Colors.grey[700]),
+          ),
+        ],
+      );
+    }
+  }
+
   Widget _buildRandomizerUI() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -209,18 +241,7 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: EdgeInsets.symmetric(vertical: 10.0),
               child: Transform.rotate(
                 angle: math.pi,
-                child: Text(
-                  (ch.Chess.instance.playerToMove == 'b'
-                      ? 'YOUR TURN'
-                      : '-- WAIT --'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24.0,
-                    backgroundColor: (ch.Chess.instance.playerToMove == 'b'
-                        ? Colors.green[800]
-                        : null),
-                  ),
-                ),
+                child: _buildTurnIndicator(ch.Color.BLACK),
               ),
             ),
             Container(
@@ -231,18 +252,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Container(
               width: _screenWidth,
               padding: EdgeInsets.symmetric(vertical: 10.0),
-              child: Text(
-                (ch.Chess.instance.playerToMove == 'w'
-                    ? 'YOUR TURN'
-                    : '-- WAIT --'),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24.0,
-                  backgroundColor: (ch.Chess.instance.playerToMove == 'w'
-                      ? Colors.green[800]
-                      : null),
-                ),
-              ),
+              child: _buildTurnIndicator(ch.Color.WHITE),
             ),
             Divider(
               height: 20.0,

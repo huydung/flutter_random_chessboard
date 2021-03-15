@@ -934,7 +934,7 @@ class Chess {
 
     String _fen =
         [fen, turnStr, cflags, epflags, half_moves, move_number].join(' ');
-    print('current FEN = $fen');
+    //print('current FEN = $fen');
     return _fen;
   }
 

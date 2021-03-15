@@ -15,6 +15,26 @@
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"
+        },
+        {
+            "name": "Random Chess iPhone Simulator",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "deviceId": "572293E5-B3C2-4049-B199-B754BC3862DA"
+        },
+        {
+            "name": "Random Chess iPad Simulator",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "debug",
+            "deviceId": "8086DCBD-81AD-4C69-83D0-CC1C4B5278BA"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Two simulators",
+            "configurations": ["Random Chess iPhone Simulator", "Random Chess iPad Simulator"]
         }
     ]
 }
