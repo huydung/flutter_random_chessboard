@@ -4,8 +4,7 @@ class BlinkingDotIndicator extends StatefulWidget {
   final double size;
   final Color color;
 
-  BlinkingDotIndicator(
-      {@required double this.size, @required Color this.color});
+  BlinkingDotIndicator({@required this.size, @required this.color});
 
   @override
   _BlinkingDotIndicatorState createState() => _BlinkingDotIndicatorState();

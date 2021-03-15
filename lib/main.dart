@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:randomchesshdi/blinking_turn_indicator.dart';
 import 'package:randomchesshdi/chess.dart' as ch;
+import 'package:randomchesshdi/chessboard/flutter_stateless_chessboard.dart';
 import 'helpers.dart';
-import 'flutter_stateless_chessboard/flutter_stateless_chessboard.dart';
 import 'consts.dart';
 import 'dart:math' as math;
 
@@ -52,6 +52,7 @@ class _MyHomePageState extends State<MyHomePage> {
     ch.Chess.instance.setFEN(savedFen);
     setState(() {
       fen = savedFen;
+      _selectedMode = [false, false, false];
     });
   }
 
@@ -138,33 +139,63 @@ class _MyHomePageState extends State<MyHomePage> {
         });
   }
 
+  Widget _buildPaymentButton() {
+    return Container(
+      child: OutlinedButton.icon(
+        style: ButtonStyle(
+          foregroundColor: MaterialStateProperty.resolveWith<Color>(
+              (states) => Colors.green[500]),
+          overlayColor: MaterialStateProperty.resolveWith<Color>(
+              (states) => Colors.green[800]),
+        ),
+        label: Text('Remove Ads'),
+        icon: Icon(Icons.sentiment_very_satisfied),
+        onPressed: _purchaseRemoveAds,
+      ),
+    );
+  }
+
   Widget _buildTurnIndicator(ch.Color forSide) {
     if (forSide == ch.Chess.instance.turn) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          BlinkingDotIndicator(
-            color: Colors.green,
-            size: 20.0,
+      return Container(
+        width: _screenWidth,
+        padding: EdgeInsets.symmetric(vertical: 10.0),
+        child: Transform.rotate(
+          angle: forSide == ch.Color.BLACK ? math.pi : 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              BlinkingDotIndicator(
+                color: Colors.green,
+                size: 20.0,
+              ),
+              SizedBox(
+                width: 5.0,
+              ),
+              Text(
+                "YOUR TURN",
+                style: TextStyle(fontSize: 20.0),
+              ),
+            ],
           ),
-          SizedBox(
-            width: 5.0,
-          ),
-          Text(
-            "YOUR TURN",
-            style: TextStyle(fontSize: 20.0),
-          ),
-        ],
+        ),
       );
     } else {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            "-- WAIT --",
-            style: TextStyle(fontSize: 20.0, color: Colors.grey[700]),
+      return Container(
+        width: _screenWidth,
+        padding: EdgeInsets.symmetric(vertical: 10.0),
+        child: Transform.rotate(
+          angle: forSide == ch.Color.BLACK ? math.pi : 0,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "-- WAIT --",
+                style: TextStyle(fontSize: 20.0, color: Colors.grey[700]),
+              ),
+            ],
           ),
-        ],
+        ),
       );
     }
   }
@@ -213,14 +244,84 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget _builPhoneView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildTurnIndicator(ch.Color.BLACK),
+        Container(
+          width: _boardWidth,
+          height: _boardWidth,
+          child: _buildChessboard(_boardWidth),
+        ),
+        _buildTurnIndicator(ch.Color.WHITE),
+        Divider(
+          height: 20.0,
+        ),
+        _buildRandomizerUI(),
+        Divider(
+          height: 20.0,
+        ),
+        _buildBannerAds(),
+        _buildPaymentButton(),
+      ],
+    );
+  }
+
+  Widget _buildTabletView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTurnIndicator(ch.Color.BLACK),
+                Container(
+                  width: _boardWidth,
+                  height: _boardWidth,
+                  child: _buildChessboard(_boardWidth),
+                ),
+                _buildTurnIndicator(ch.Color.WHITE),
+              ],
+            ),
+          ],
+        ),
+        Divider(
+          height: 20.0,
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildRandomizerUI(),
+                SizedBox(height: 10.0),
+                _buildPaymentButton(),
+              ],
+            ),
+            SizedBox(width: 10.0),
+            _buildBannerAds(),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _screenWidth = MediaQuery.of(context).size.width.toDouble();
     if (_screenWidth > K_PHONE_WIDTH_PX) {
       centerUIpadding = (_screenWidth - K_PHONE_WIDTH_PX) * 0.5;
     }
-    _boardWidth = _screenWidth > 560 ? 560 : _screenWidth;
-    //print('Queried Size: ${size.width}, centerUIpadding: $centerUIpadding');
+    _boardWidth = _screenWidth > K_TWO_COLUMN_THRESHOLD
+        ? K_TWO_COLUMN_THRESHOLD.toDouble()
+        : _screenWidth;
+    print('Queried Size: ${_screenWidth}, centerUIpadding: $centerUIpadding');
 
     return Scaffold(
       appBar: AppBar(
@@ -233,51 +334,9 @@ class _MyHomePageState extends State<MyHomePage> {
         ],
       ),
       body: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: _screenWidth,
-              padding: EdgeInsets.symmetric(vertical: 10.0),
-              child: Transform.rotate(
-                angle: math.pi,
-                child: _buildTurnIndicator(ch.Color.BLACK),
-              ),
-            ),
-            Container(
-              width: _boardWidth,
-              height: _boardWidth,
-              child: _buildChessboard(_boardWidth),
-            ),
-            Container(
-              width: _screenWidth,
-              padding: EdgeInsets.symmetric(vertical: 10.0),
-              child: _buildTurnIndicator(ch.Color.WHITE),
-            ),
-            Divider(
-              height: 20.0,
-            ),
-            _buildRandomizerUI(),
-            Divider(
-              height: 20.0,
-            ),
-            _buildBannerAds(),
-            Container(
-              child: OutlinedButton.icon(
-                style: ButtonStyle(
-                  foregroundColor: MaterialStateProperty.resolveWith<Color>(
-                      (states) => Colors.green[500]),
-                  overlayColor: MaterialStateProperty.resolveWith<Color>(
-                      (states) => Colors.green[800]),
-                ),
-                label: Text('Remove Ads'),
-                icon: Icon(Icons.sentiment_very_satisfied),
-                onPressed: _purchaseRemoveAds,
-              ),
-            ),
-          ],
-        ),
-      ),
+          child: _screenWidth > K_TWO_COLUMN_THRESHOLD
+              ? _buildTabletView()
+              : _builPhoneView()),
     );
   }
 }
