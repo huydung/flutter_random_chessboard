@@ -2,7 +2,6 @@ library flutter_chessboard;
 
 import 'package:flutter/material.dart';
 import 'types.dart';
-import 'utils.dart';
 import 'widgets/chess_square.dart';
 import '../chess.dart' as ch;
 
@@ -49,6 +48,12 @@ class _ChessboardState extends State<Chessboard> {
             piece.type.toString(), piece.color == ch.Color.BLACK ? 'b' : 'w');
       }
     });
+
+    String getSquare(int rankIndex, int fileIndex, String orientation) {
+      final rank = orientation == 'b' ? rankIndex + 1 : 8 - rankIndex;
+      final file = orientation == 'b' ? 7 - fileIndex : fileIndex;
+      return '${String.fromCharCode(file + 97)}$rank';
+    }
 
     return Container(
       width: widget.size,

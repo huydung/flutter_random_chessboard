@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:randomchesshdi/blinking_turn_indicator.dart';
+import 'package:randomchesshdi/blinking_dot.dart';
 import 'package:randomchesshdi/chess.dart' as ch;
-import 'package:randomchesshdi/chessboard/flutter_stateless_chessboard.dart';
+import 'package:randomchesshdi/chessboard/chessboard.dart';
 import 'helpers.dart';
 import 'consts.dart';
 import 'dart:math' as math;
@@ -11,12 +11,6 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
   runApp(MyApp());
-}
-
-class Configs {
-  String fen = ChessHelper.STANDARD_STARTING_POSITION;
-  int lastSelectedMode = 0;
-  bool firstTimeTutorialShown = false;
 }
 
 class MyApp extends StatelessWidget {
@@ -154,9 +148,9 @@ class _MyHomePageState extends State<MyHomePage> {
       child: OutlinedButton.icon(
         style: ButtonStyle(
           foregroundColor: MaterialStateProperty.resolveWith<Color>(
-              (states) => Colors.green[500]),
+              (states) => Colors.green[200]),
           overlayColor: MaterialStateProperty.resolveWith<Color>(
-              (states) => Colors.green[800]),
+              (states) => Colors.green[500]),
         ),
         label: Text('Remove Ads'),
         icon: Icon(Icons.sentiment_very_satisfied),
@@ -167,11 +161,26 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildTurnIndicator(ch.Color forSide) {
     double rotationAngle = forSide == ch.Color.BLACK ? math.pi : 0;
-    Widget turnIndicator;
-    if (forSide == ch.Chess.instance.turn) {
-      turnIndicator = Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
+    List<Widget> turnIndicators;
+    if (ch.Chess.instance.in_checkmate) {
+      if (forSide == ch.Chess.instance.turn) {
+        turnIndicators = [
+          BlinkingDotIndicator(
+            color: Colors.red,
+            size: 20.0,
+          ),
+          SizedBox(
+            width: 5.0,
+          ),
+          Expanded(
+            child: Text(
+              "YOU LOSE!",
+              style: TextStyle(fontSize: 18.0),
+            ),
+          ),
+        ];
+      } else {
+        turnIndicators = [
           BlinkingDotIndicator(
             color: Colors.green,
             size: 20.0,
@@ -179,23 +188,57 @@ class _MyHomePageState extends State<MyHomePage> {
           SizedBox(
             width: 5.0,
           ),
-          Text(
-            "YOUR TURN",
-            style: TextStyle(fontSize: 20.0),
+          Expanded(
+            child: Text(
+              "YOU WON!",
+              style: TextStyle(fontSize: 18.0),
+            ),
           ),
-        ],
-      );
+        ];
+      }
     } else {
-      turnIndicator = Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            "-- WAIT --",
-            style: TextStyle(fontSize: 20.0, color: Colors.grey[700]),
+      if (forSide == ch.Chess.instance.turn) {
+        turnIndicators = [
+          BlinkingDotIndicator(
+            color: Colors.white,
+            size: 20.0,
           ),
-        ],
-      );
+          SizedBox(
+            width: 5.0,
+          ),
+          Expanded(
+            child: Text(
+              "YOUR TURN",
+              style: TextStyle(fontSize: 18.0),
+            ),
+          ),
+        ];
+      } else {
+        turnIndicators = [
+          Expanded(
+            child: Text(
+              "-- WAIT --",
+              style: TextStyle(fontSize: 18.0, color: Colors.grey[700]),
+            ),
+          ),
+        ];
+      }
     }
+
+    turnIndicators.add(TextButton.icon(
+      icon: Icon(
+        Icons.undo,
+      ),
+      onPressed: () {
+        ch.Move lastMove = ch.Chess.instance.undo_move();
+        if (lastMove != null) {
+          setState(() {
+            fen = ch.Chess.instance.fen;
+          });
+        }
+      },
+      label: Text("UNDO"),
+    ));
 
     return Visibility(
       maintainSize: true,
@@ -204,10 +247,17 @@ class _MyHomePageState extends State<MyHomePage> {
       visible: _playingStarted,
       child: Container(
         width: _screenWidth,
-        padding: EdgeInsets.symmetric(vertical: 10.0),
+        padding: EdgeInsets.symmetric(
+          vertical: 0.0,
+          horizontal: 15.0,
+        ),
         child: Transform.rotate(
-            angle: forSide == ch.Color.BLACK ? math.pi : 0,
-            child: turnIndicator),
+          angle: rotationAngle,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: turnIndicators,
+          ),
+        ),
       ),
     );
   }
@@ -218,19 +268,27 @@ class _MyHomePageState extends State<MyHomePage> {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         ToggleButtons(
+          borderColor: Colors.white54,
+          fillColor: Colors.white70,
+          textStyle: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+          selectedColor: Colors.black,
           direction: Axis.horizontal,
           borderRadius: BorderRadius.all(Radius.circular(10.0)),
           children: [
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              padding: EdgeInsets.symmetric(horizontal: 10.0),
               child: Text('Random Board'),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              padding: EdgeInsets.symmetric(horizontal: 10.0),
               child: Text('Chess960'),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.0),
+              padding: EdgeInsets.symmetric(horizontal: 10.0),
               child: Text('Standard'),
             ),
           ],
@@ -331,7 +389,6 @@ class _MyHomePageState extends State<MyHomePage> {
     _boardWidth = _screenWidth > K_TWO_COLUMN_THRESHOLD
         ? K_TWO_COLUMN_THRESHOLD.toDouble()
         : _screenWidth;
-    print('Queried Size: _screenWidth');
 
     return Scaffold(
       appBar: AppBar(
