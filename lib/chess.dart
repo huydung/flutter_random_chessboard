@@ -1044,6 +1044,9 @@ class Chess {
     ColorMap<int> second_rank = new ColorMap(0);
     second_rank[BLACK] = RANK_7;
     second_rank[WHITE] = RANK_2;
+    ColorMap<int> first_rank = new ColorMap(0);
+    first_rank[BLACK] = RANK_8;
+    first_rank[WHITE] = RANK_1;
 
     var first_sq = SQUARES_A8;
     var last_sq = SQUARES_H1;
@@ -1088,6 +1091,13 @@ class Chess {
           if (second_rank[us] == rank(i) && board[square2] == null) {
             add_move(board, moves, i, square2, BITS_BIG_PAWN);
           }
+
+          /* huydung add double square on random board */
+          var square2plus = i + PAWN_OFFSETS[us][1];
+          if (first_rank[us] == rank(i) && board[square2plus] == null) {
+            add_move(board, moves, i, square2plus, BITS_BIG_PAWN);
+          }
+          /* end of huydung add */
         }
 
         /* pawn captures */

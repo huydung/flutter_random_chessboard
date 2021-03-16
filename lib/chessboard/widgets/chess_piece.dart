@@ -37,7 +37,7 @@ class _ChessPieceState extends State<ChessPiece> with TickerProviderStateMixin {
   initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 350),
       vsync: this,
     );
     _controller.repeat(reverse: true);
@@ -109,11 +109,21 @@ class _ChessPieceState extends State<ChessPiece> with TickerProviderStateMixin {
       default:
         return null;
     }
-    if (widget.piece.color == 'b') {
-      pieceWidget = Transform.rotate(
-        angle: math.pi,
-        child: pieceWidget,
-      );
+
+    if (ch.Chess.instance.in_checkmate) {
+      if (widget.piece.color == ch.Chess.instance.playerToMove) {
+        pieceWidget = Transform.rotate(
+          angle: math.pi * 0.45,
+          child: pieceWidget,
+        );
+      }
+    } else {
+      if (widget.piece.color == 'b') {
+        pieceWidget = Transform.rotate(
+          angle: math.pi,
+          child: pieceWidget,
+        );
+      }
     }
 
     if (widget.setToMove) {

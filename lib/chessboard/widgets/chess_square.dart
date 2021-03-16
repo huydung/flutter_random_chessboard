@@ -25,7 +25,7 @@ class ChessSquare extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool redHighlight = false;
-    if (ch.Chess.instance.in_check) {
+    if (ch.Chess.instance.in_check || ch.Chess.instance.in_checkmate) {
       if (piece != null) {
         if (piece.type == 'k') {
           if (ch.Chess.instance.playerToMove == piece.color) {
