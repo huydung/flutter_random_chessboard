@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:randomchesshdi/consts.dart';
@@ -15,7 +16,53 @@ class LinkHelper {
   }
 }
 
+class ConfigStruct {
+  String fen = ChessHelper.STANDARD_STARTING_POSITION;
+  int lastSelectedMode = 0;
+  bool firstTimeTutorialShown = false;
+
+  ConfigStruct();
+
+  Map toJSON() => {
+        'fen': fen,
+        'lastSelectedMode': lastSelectedMode,
+        'firstTimeTutorialShown': firstTimeTutorialShown
+      };
+
+  ConfigStruct.fromJSON(Map<String, dynamic> json)
+      : fen = json['fen'],
+        lastSelectedMode = json['lastSelectedMode'],
+        firstTimeTutorialShown = json['firstTimeTutorialShown'];
+}
+
 class DataHelper {
+  static Future<ConfigStruct> getConfigs() async {
+    final prefs = await SharedPreferences.getInstance();
+    String configStr = prefs.getString('config') ?? '';
+
+    print('Read from disk data = $configStr');
+
+    if (configStr.isEmpty) {
+      return new ConfigStruct();
+    }
+
+    ConfigStruct config = ConfigStruct.fromJSON(jsonDecode(configStr));
+    return config;
+  }
+
+  static Future<bool> clearConfigs() async {
+    final prefs = await SharedPreferences.getInstance();
+    return await prefs.clear();
+  }
+
+  static Future<bool> saveConfigs(ConfigStruct config) async {
+    final prefs = await SharedPreferences.getInstance();
+    String configStr = jsonEncode(config.toJSON());
+    bool result = await prefs.setString('config', configStr);
+    print('Write to disk data = $configStr, result = $result');
+    return result;
+  }
+
   static Future<String> getLastFEN() async {
     final prefs = await SharedPreferences.getInstance();
     String fen =
@@ -34,6 +81,8 @@ class DataHelper {
 class ChessHelper {
   static const String STANDARD_STARTING_POSITION =
       'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+  static const String CHECKMATE_IN_TWO =
+      '2bqkbn1/2pppp2/np2N3/r3P1p1/p2N2B1/5Q2/PPPPKPP1/RNB2r2 w KQkq - 0 1';
   static String generateRandomPosition(randomMode) {
     var fen;
     if (randomMode == RandomizeMode.FISCHER) {

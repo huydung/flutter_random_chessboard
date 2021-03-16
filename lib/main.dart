@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:randomchesshdi/blinking_dot.dart';
 import 'package:randomchesshdi/chess.dart' as ch;
 import 'package:randomchesshdi/chessboard/chessboard.dart';
@@ -9,6 +13,7 @@ import 'dart:math' as math;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  InAppPurchaseConnection.enablePendingPurchases();
   MobileAds.instance.initialize();
   runApp(MyApp());
 }
@@ -38,8 +43,22 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   String fen;
   //https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+  /* Handling In App Purchase */
+  final InAppPurchaseConnection _connection = InAppPurchaseConnection.instance;
+  StreamSubscription<List<PurchaseDetails>> _subscription;
+  List<String> _notFoundIds = [];
+  List<ProductDetails> _products = [];
+  List<PurchaseDetails> _purchases = [];
+  bool _isStoreAvailable = false;
+  bool _purchasePending = false;
+  bool _isStoreloading = true;
+  final String _kUpgradeId = 'com.huydung.randomchess.removeads'; //SKU
+  List<String> _kProductIds = <String>['com.huydung.randomchess.removeads'];
+  String _queryProductError;
+  /* In App Purchase */
 
   BannerAd _ad;
+  bool _storeAvailable = false;
   bool _isAdLoaded = false;
   double _screenWidth = 320;
   double _boardWidth = 320;
@@ -84,11 +103,162 @@ class _MyHomePageState extends State<MyHomePage> {
 
       _ad.load();
     });
+
+    Stream<List<PurchaseDetails>> purchaseUpdated =
+        InAppPurchaseConnection.instance.purchaseUpdatedStream;
+    _subscription = purchaseUpdated.listen((purchaseDetailsList) {
+      _listenToPurchaseUpdated(purchaseDetailsList);
+    }, onDone: () {
+      _subscription.cancel();
+    }, onError: (error) {
+      // handle error here.
+    });
+    initStoreInfo();
+  }
+
+  Future<void> initStoreInfo() async {
+    final bool isAvailable = await _connection.isAvailable();
+    if (!isAvailable) {
+      print('Store COnnection is not available');
+      setState(() {
+        _isStoreAvailable = isAvailable;
+        _products = [];
+        _purchases = [];
+        _purchasePending = false;
+        _isStoreloading = false;
+      });
+      return;
+    }
+
+    print('Store COnnection is available, trying to get the products');
+    ProductDetailsResponse productDetailResponse =
+        await _connection.queryProductDetails(_kProductIds.toSet());
+    if (productDetailResponse.error != null) {
+      setState(() {
+        _queryProductError = productDetailResponse.error.message;
+        _isStoreAvailable = isAvailable;
+        _products = productDetailResponse.productDetails;
+        _purchases = [];
+        _notFoundIds = productDetailResponse.notFoundIDs;
+        _purchasePending = false;
+        _isStoreloading = false;
+      });
+      print('queryProductDetailError: $_queryProductError');
+      return;
+    }
+
+    if (productDetailResponse.productDetails.isEmpty) {
+      setState(() {
+        _queryProductError = null;
+        _isStoreAvailable = isAvailable;
+        _products = productDetailResponse.productDetails;
+        _purchases = [];
+        _notFoundIds = productDetailResponse.notFoundIDs;
+        _purchasePending = false;
+        _isStoreloading = false;
+      });
+      print('queryProductDetailError: Empty');
+      return;
+    }
+
+    final QueryPurchaseDetailsResponse purchaseResponse =
+        await _connection.queryPastPurchases();
+    if (purchaseResponse.error != null) {
+      // handle query past purchase error..
+    }
+    final List<PurchaseDetails> verifiedPurchases = [];
+    for (PurchaseDetails purchase in purchaseResponse.pastPurchases) {
+      if (await _verifyPurchase(purchase)) {
+        verifiedPurchases.add(purchase);
+      }
+    }
+
+    setState(() {
+      _isStoreAvailable = isAvailable;
+      _products = productDetailResponse.productDetails;
+      _purchases = verifiedPurchases;
+      _notFoundIds = productDetailResponse.notFoundIDs;
+      _purchasePending = false;
+      _isStoreloading = false;
+    });
+  }
+
+  Future<bool> _verifyPurchase(PurchaseDetails purchaseDetails) {
+    print('_verifyPurchase');
+    // IMPORTANT!! Always verify a purchase before delivering the product.
+    // For the purpose of an example, we directly return true.
+    return Future<bool>.value(true);
+  }
+
+  void _handleInvalidPurchase(PurchaseDetails purchaseDetails) {
+    // handle invalid purchase here if  _verifyPurchase` failed.
+    print('_handleInvalidPurchase');
+  }
+
+  void deliverProduct(PurchaseDetails purchaseDetails) async {
+    // IMPORTANT!! Always verify purchase details before delivering the product.
+    // if (purchaseDetails.productID == _kConsumableId) {
+    //   await ConsumableStore.save(purchaseDetails.purchaseID!);
+    //   List<String> consumables = await ConsumableStore.load();
+    //   setState(() {
+    //     _purchasePending = false;
+    //     _consumables = consumables;
+    //   });
+    // } else {
+    setState(() {
+      _purchases.add(purchaseDetails);
+      _purchasePending = false;
+    });
+    //}
+  }
+
+  void showPendingUI() {
+    setState(() {
+      _purchasePending = true;
+    });
+  }
+
+  void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) {
+    purchaseDetailsList.forEach((PurchaseDetails purchaseDetails) async {
+      if (purchaseDetails.status == PurchaseStatus.pending) {
+        showPendingUI();
+      } else {
+        if (purchaseDetails.status == PurchaseStatus.error) {
+          handleError(purchaseDetails.error);
+        } else if (purchaseDetails.status == PurchaseStatus.purchased) {
+          bool valid = await _verifyPurchase(purchaseDetails);
+          if (valid) {
+            deliverProduct(purchaseDetails);
+          } else {
+            _handleInvalidPurchase(purchaseDetails);
+            return;
+          }
+        }
+        // if (Platform.isAndroid) {
+        //   if (!_kAutoConsume && purchaseDetails.productID == _kConsumableId) {
+        //     await InAppPurchaseConnection.instance
+        //         .consumePurchase(purchaseDetails);
+        //   }
+        // }
+        if (purchaseDetails.pendingCompletePurchase) {
+          await InAppPurchaseConnection.instance
+              .completePurchase(purchaseDetails);
+        }
+      }
+    });
+  }
+
+  void handleError(IAPError error) {
+    setState(() {
+      print('IAP Error: ${error.message}');
+      _purchasePending = false;
+    });
   }
 
   @override
   void dispose() {
     _ad?.dispose();
+    _subscription?.cancel();
     super.dispose();
   }
 

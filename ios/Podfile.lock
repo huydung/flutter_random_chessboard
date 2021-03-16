@@ -30,6 +30,8 @@ PODS:
   - "GoogleUtilities/NSData+zlib (7.3.0)"
   - GoogleUtilities/Reachability (7.3.0):
     - GoogleUtilities/Logger
+  - in_app_purchase (0.0.1):
+    - Flutter
   - nanopb (2.30907.0):
     - nanopb/decode (= 2.30907.0)
     - nanopb/encode (= 2.30907.0)
@@ -44,6 +46,7 @@ PODS:
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - google_mobile_ads (from `.symlinks/plugins/google_mobile_ads/ios`)
+  - in_app_purchase (from `.symlinks/plugins/in_app_purchase/ios`)
   - shared_preferences (from `.symlinks/plugins/shared_preferences/ios`)
   - url_launcher (from `.symlinks/plugins/url_launcher/ios`)
 
@@ -61,6 +64,8 @@ EXTERNAL SOURCES:
     :path: Flutter
   google_mobile_ads:
     :path: ".symlinks/plugins/google_mobile_ads/ios"
+  in_app_purchase:
+    :path: ".symlinks/plugins/in_app_purchase/ios"
   shared_preferences:
     :path: ".symlinks/plugins/shared_preferences/ios"
   url_launcher:
@@ -73,6 +78,7 @@ SPEC CHECKSUMS:
   GoogleAppMeasurement: dccff6095ea1cd8972a8b96d0ee38b9e6d67acbb
   GoogleUserMessagingPlatform: b168e8c46cd8f92aa3e34b584c4ca78a411ce367
   GoogleUtilities: abda45f519bc4073aa1171d2f8742108def46017
+  in_app_purchase: 3e2155afa9d03d4fa32d9e62d567885080ce97d6
   nanopb: 59221d7f958fb711001e6a449489542d92ae113e
   PromisesObjC: 3113f7f76903778cf4a0586bd1ab89329a0b7b97
   shared_preferences: af6bfa751691cdc24be3045c43ec037377ada40d
