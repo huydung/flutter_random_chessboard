@@ -54,6 +54,7 @@ class ChessSquare extends StatelessWidget {
                 squareColor: color,
                 piece: piece,
                 size: size,
+                setToMove: highlight,
               )
             : null;
 

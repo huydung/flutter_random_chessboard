@@ -10,41 +10,39 @@ class ChessPiece extends StatefulWidget {
   final Color squareColor;
   final Piece piece;
   final double size;
+  final bool setToMove;
 
-  ChessPiece({
-    @required this.squareName,
-    @required this.squareColor,
-    @required this.piece,
-    @required this.size,
-  });
+  ChessPiece(
+      {@required this.squareName,
+      @required this.squareColor,
+      @required this.piece,
+      @required this.size,
+      this.setToMove = false});
 
   @override
   _ChessPieceState createState() => _ChessPieceState();
 }
 
-class _ChessPieceState
-    extends State<ChessPiece> /* with TickerProviderStateMixin */ {
-  // AnimationController _controller;
-  // Animation<double> _animation;
-  // Tween<double> _tween = Tween(begin: 0.9, end: 1.1);
-  // @override
-  // void dispose() {
-  //   super.dispose();
-  //   _controller.dispose();
-  // }
+class _ChessPieceState extends State<ChessPiece> with TickerProviderStateMixin {
+  AnimationController _controller;
+  Animation<double> _animation;
+  Tween<double> _tween = Tween(begin: 0.9, end: 1.1);
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   initState() {
     super.initState();
-    // _controller = AnimationController(
-    //   duration: const Duration(milliseconds: 500),
-    //   vsync: this,
-    // );
-    // _controller.repeat(reverse: true);
-    // _animation = _tween
-    //     .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-
-    //_controller.forward();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _controller.repeat(reverse: true);
+    _animation = _tween
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -118,14 +116,13 @@ class _ChessPieceState
       );
     }
 
-    // if (widget.piece.color == ch.Chess.instance.playerToMove &&
-    //     widget.piece.type == 'k') {
-    //   pieceWidget = ScaleTransition(
-    //     scale: _animation,
-    //     alignment: Alignment.center,
-    //     child: pieceWidget,
-    //   );
-    // }
+    if (widget.setToMove) {
+      pieceWidget = ScaleTransition(
+        scale: _animation,
+        alignment: Alignment.center,
+        child: pieceWidget,
+      );
+    }
 
     return pieceWidget;
   }

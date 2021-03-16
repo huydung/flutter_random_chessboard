@@ -13,6 +13,12 @@ void main() {
   runApp(MyApp());
 }
 
+class Configs {
+  String fen = ChessHelper.STANDARD_STARTING_POSITION;
+  int lastSelectedMode = 0;
+  bool firstTimeTutorialShown = false;
+}
+
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -36,7 +42,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  String fen = ChessHelper.STANDARD_STARTING_POSITION;
+  String fen;
   //https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 
   BannerAd _ad;
@@ -44,8 +50,9 @@ class _MyHomePageState extends State<MyHomePage> {
   double _screenWidth = 320;
   double _boardWidth = 320;
   RandomizeMode selectedRandomMode = RandomizeMode.FULL_RANDOM;
-  double centerUIpadding = 0;
-  var _selectedMode = [false, false, true];
+  bool _isShowingHint;
+  bool _playingStarted = false;
+  var _selectedMode = [true, false, false];
 
   void loadSavedFen() async {
     final savedFen = await DataHelper.getLastFEN();
@@ -59,8 +66,9 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    ch.Chess.instance.setFEN(ChessHelper.STANDARD_STARTING_POSITION);
-    loadSavedFen();
+    fen = ChessHelper.generateRandomPosition(RandomizeMode.FULL_RANDOM);
+    ch.Chess.instance.setFEN(fen);
+    //loadSavedFen();
 
     Future.delayed(Duration(seconds: 3), () {
       _ad = BannerAd(
@@ -134,8 +142,10 @@ class _MyHomePageState extends State<MyHomePage> {
             setState(() {
               fen = ch.Chess.instance.fen;
               DataHelper.saveFEN(fen);
+              _playingStarted = true;
             });
           }
+          return moveMade;
         });
   }
 
@@ -156,48 +166,50 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildTurnIndicator(ch.Color forSide) {
+    double rotationAngle = forSide == ch.Color.BLACK ? math.pi : 0;
+    Widget turnIndicator;
     if (forSide == ch.Chess.instance.turn) {
-      return Container(
-        width: _screenWidth,
-        padding: EdgeInsets.symmetric(vertical: 10.0),
-        child: Transform.rotate(
-          angle: forSide == ch.Color.BLACK ? math.pi : 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              BlinkingDotIndicator(
-                color: Colors.green,
-                size: 20.0,
-              ),
-              SizedBox(
-                width: 5.0,
-              ),
-              Text(
-                "YOUR TURN",
-                style: TextStyle(fontSize: 20.0),
-              ),
-            ],
+      turnIndicator = Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          BlinkingDotIndicator(
+            color: Colors.green,
+            size: 20.0,
           ),
-        ),
+          SizedBox(
+            width: 5.0,
+          ),
+          Text(
+            "YOUR TURN",
+            style: TextStyle(fontSize: 20.0),
+          ),
+        ],
       );
     } else {
-      return Container(
+      turnIndicator = Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            "-- WAIT --",
+            style: TextStyle(fontSize: 20.0, color: Colors.grey[700]),
+          ),
+        ],
+      );
+    }
+
+    return Visibility(
+      maintainSize: true,
+      maintainAnimation: true,
+      maintainState: true,
+      visible: _playingStarted,
+      child: Container(
         width: _screenWidth,
         padding: EdgeInsets.symmetric(vertical: 10.0),
         child: Transform.rotate(
-          angle: forSide == ch.Color.BLACK ? math.pi : 0,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                "-- WAIT --",
-                style: TextStyle(fontSize: 20.0, color: Colors.grey[700]),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
+            angle: forSide == ch.Color.BLACK ? math.pi : 0,
+            child: turnIndicator),
+      ),
+    );
   }
 
   Widget _buildRandomizerUI() {
@@ -228,6 +240,7 @@ class _MyHomePageState extends State<MyHomePage> {
             _newMode[index] = true;
             setState(() {
               _selectedMode = _newMode;
+              _playingStarted = false;
               if (index == 0)
                 fen = ChessHelper.generateRandomPosition(
                     RandomizeMode.FULL_RANDOM);
@@ -315,13 +328,10 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     _screenWidth = MediaQuery.of(context).size.width.toDouble();
-    if (_screenWidth > K_PHONE_WIDTH_PX) {
-      centerUIpadding = (_screenWidth - K_PHONE_WIDTH_PX) * 0.5;
-    }
     _boardWidth = _screenWidth > K_TWO_COLUMN_THRESHOLD
         ? K_TWO_COLUMN_THRESHOLD.toDouble()
         : _screenWidth;
-    print('Queried Size: ${_screenWidth}, centerUIpadding: $centerUIpadding');
+    print('Queried Size: _screenWidth');
 
     return Scaffold(
       appBar: AppBar(

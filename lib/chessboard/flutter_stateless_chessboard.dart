@@ -12,7 +12,7 @@ class Chessboard extends StatefulWidget {
   final String fen;
   final double size;
   final String orientation; // 'w' | 'b'
-  final void Function(ShortMove move) onMove;
+  final bool Function(ShortMove move) onMove;
   final Color lightSquareColor;
   final Color darkSquareColor;
 
@@ -66,7 +66,7 @@ class _ChessboardState extends State<Chessboard> {
                 name: square,
                 color: color,
                 size: squareSize,
-                highlight: false,
+                highlight: _clickMove != null && _clickMove.square == square,
                 piece: _pieceMap[square],
                 onDrop: (move) {
                   if (widget.onMove != null) {
@@ -75,23 +75,30 @@ class _ChessboardState extends State<Chessboard> {
                   }
                 },
                 onClick: (halfMove) {
-                  // if (_clickMove != null) {
-                  //   if (_clickMove.square == halfMove.square) {
-                  //     setClickMove(null);
-                  //   } else if (_clickMove.piece.color ==
-                  //       halfMove.piece?.color) {
-                  //     setClickMove(halfMove);
-                  //   } else {
-                  //     widget.onMove(ShortMove(
-                  //       from: _clickMove.square,
-                  //       to: halfMove.square,
-                  //       promotion: 'q',
-                  //     ));
-                  //   }
-                  //   setClickMove(null);
-                  // } else if (halfMove.piece != null) {
-                  //   setClickMove(halfMove);
-                  // }
+                  if (_clickMove != null) {
+                    if (_clickMove.square == halfMove.square) {
+                      setClickMove(null);
+                      return;
+                    }
+                    if (_clickMove.piece.color == halfMove.piece?.color) {
+                      setClickMove(halfMove);
+                      return;
+                    }
+
+                    if (widget.onMove(ShortMove(
+                      from: _clickMove.square,
+                      to: halfMove.square,
+                      promotion: 'q',
+                    ))) {
+                      setClickMove(null);
+                    }
+                  } else {
+                    if (halfMove.piece != null &&
+                        halfMove.piece.color ==
+                            ch.Chess.instance.playerToMove) {
+                      setClickMove(halfMove);
+                    }
+                  }
                 },
               );
             }).toList(),
