@@ -27,7 +27,9 @@ dependencies:
   google_mobile_ads: ^0.11.0
   url_launcher: ^6.0.2
   shared_preferences: ^2.0.4
-  in_app_purchase: ^0.5.1
+  # in_app_purchase: ^0.5.1
+  # rflutter_alert: ^2.0.2
+  purchases_flutter: ^3.1.0
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
