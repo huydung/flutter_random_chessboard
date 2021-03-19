@@ -44,8 +44,11 @@ class _MyHomePageState extends State<MyHomePage> {
   //https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
 
   BannerAd _ad;
+  InterstitialAd _fsAd;
+
   AdSize _adSize;
-  bool _isAdLoaded = false;
+  bool _isBannerAdLoaded = false;
+  bool _isFSAdsLoaded = false;
   double _screenWidth = 320;
   double _boardWidth = 320;
 
@@ -206,7 +209,35 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void loadAd() {
+  void loadFullScreenAd() {
+    print('loadFullScreenAd is called');
+    if (_fsAd == null) {
+      print('Start actually loading full screen ad');
+      _fsAd = InterstitialAd(
+        adUnitId: AdHelper.fullScreenAdUnitId,
+        request: AdRequest(),
+        listener: AdListener(
+          onAdLoaded: (Ad ad) {
+            print('Full Screen loaded.');
+            _isFSAdsLoaded = true;
+          },
+          // Called when an ad request failed.
+          onAdFailedToLoad: (Ad ad, LoadAdError error) {
+            print('Ad failed to load: $error');
+          },
+          // Called when an ad opens an overlay that covers the screen.
+          onAdOpened: (Ad ad) => print('Ad opened.'),
+          // Called when an ad removes an overlay that covers the screen.
+          onAdClosed: (Ad ad) => print('Ad closed.'),
+          // Called when an ad is in the process of leaving the application.
+          onApplicationExit: (Ad ad) => print('Left application.'),
+        ),
+      );
+      _fsAd.load();
+    }
+  }
+
+  void loadBannerAd() {
     print("_loadAd is called");
     if (_ad == null) {
       print("Start loading Ads");
@@ -217,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
         listener: AdListener(
           onAdLoaded: (_) {
             setState(() {
-              _isAdLoaded = true;
+              _isBannerAdLoaded = true;
             });
           },
           onAdFailedToLoad: (_, error) {
@@ -234,6 +265,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void dispose() {
     _ad?.dispose();
+    _fsAd?.dispose();
     //_subscription?.cancel();
     super.dispose();
   }
@@ -249,8 +281,9 @@ class _MyHomePageState extends State<MyHomePage> {
       //     image: AssetImage('assets/img/default_banner.png'),
       //   ),
       // );
-      loadAd();
-      if (_isAdLoaded) {
+      loadBannerAd();
+      loadFullScreenAd();
+      if (_isBannerAdLoaded) {
         return Container(
           child: AdWidget(ad: _ad),
           width: _ad.size.width.toDouble(),
@@ -455,6 +488,11 @@ class _MyHomePageState extends State<MyHomePage> {
         _config.isPlaying = false;
         _config.boardGenerated++;
         DataHelper.saveConfigs(_config);
+        if (_config.boardGenerated % K_FULLSCREEN_ADS_THRESHOLD == 0) {
+          if (_isFSAdsLoaded) {
+            _fsAd.show();
+          }
+        }
       },
     );
   }

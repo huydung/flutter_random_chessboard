@@ -169,11 +169,13 @@ class AdHelper {
     'test': {
       'android': {
         'banner': 'ca-app-pub-3940256099942544/6300978111',
-        'native': 'ca-app-pub-3940256099942544/2247696110'
+        'native': 'ca-app-pub-3940256099942544/2247696110',
+        'fullscreen': 'ca-app-pub-3940256099942544/4411468910',
       },
       'apple': {
         'banner': 'ca-app-pub-3940256099942544/2934735716',
-        'native': 'ca-app-pub-3940256099942544/3986624511'
+        'native': 'ca-app-pub-3940256099942544/3986624511',
+        'fullscreen': 'ca-app-pub-3940256099942544/4411468910',
       },
     },
     'prod': {
@@ -183,7 +185,8 @@ class AdHelper {
       },
       'apple': {
         'banner': 'ca-app-pub-4757047581054358/2338627183',
-        'native': 'ca-app-pub-4757047581054358/1226524369'
+        'native': 'ca-app-pub-4757047581054358/1226524369',
+        'fullscreen': 'ca-app-pub-4757047581054358/5223858551',
       },
     }
   };
@@ -203,8 +206,8 @@ class AdHelper {
     return adsIds[_env][_platform]['banner'];
   }
 
-  static String get nativeAdUnitId {
+  static String get fullScreenAdUnitId {
     _detectPlatform();
-    return adsIds[_env][_platform]['native'];
+    return adsIds[_env][_platform]['fullscreen'];
   }
 }
