@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:randomchesshdi/consts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 
 class LinkHelper {
   static void launchURL(String url) async {
@@ -20,19 +21,25 @@ class ConfigStruct {
   String fen = ChessHelper.STANDARD_STARTING_POSITION;
   int lastSelectedMode = 0;
   bool firstTimeTutorialShown = false;
+  int boardGenerated = 0;
+  bool isPlaying = false;
 
   ConfigStruct();
 
   Map toJSON() => {
         'fen': fen,
         'lastSelectedMode': lastSelectedMode,
-        'firstTimeTutorialShown': firstTimeTutorialShown
+        'firstTimeTutorialShown': firstTimeTutorialShown,
+        'boardGenerated': boardGenerated,
+        'isPlaying': isPlaying
       };
 
   ConfigStruct.fromJSON(Map<String, dynamic> json)
       : fen = json['fen'],
         lastSelectedMode = json['lastSelectedMode'],
-        firstTimeTutorialShown = json['firstTimeTutorialShown'];
+        firstTimeTutorialShown = json['firstTimeTutorialShown'],
+        boardGenerated = json['boardGenerated'],
+        isPlaying = json['isPlaying'];
 }
 
 class DataHelper {
@@ -155,7 +162,7 @@ class ChessHelper {
 }
 
 class AdHelper {
-  static String _env = 'test';
+  static String _env = kReleaseMode ? 'prod' : 'test';
   static String _platform = 'apple';
 
   static Map<String, Map<String, Map<String, String>>> adsIds = {

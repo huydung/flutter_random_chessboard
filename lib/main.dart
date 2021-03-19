@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -15,7 +13,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
-  runApp(MyApp());
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((value) => runApp(MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -27,7 +26,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         primarySwatch: Colors.red,
       ),
-      home: MyHomePage(title: 'Random Chess Generator'),
+      home: MyHomePage(title: 'Random Chess - Fun Learning'),
     );
   }
 }
@@ -49,14 +48,25 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isAdLoaded = false;
   double _screenWidth = 320;
   double _boardWidth = 320;
-  RandomizeMode selectedRandomMode = RandomizeMode.FULL_RANDOM;
-  bool _isShowingHint;
+
   bool _playingStarted = false;
-  var _selectedMode = [true, false, false];
+  var _selectedMode = [false, false, false];
+
+  ConfigStruct _config;
 
   bool _isPro = false;
   bool _proStatusValidated = false;
   bool _iapPackageAvailableForPurchase = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fen = ChessHelper.generateRandomPosition(RandomizeMode.FULL_RANDOM);
+    ch.Chess.instance.setFEN(fen);
+    loadConfigs();
+    //loadSavedFen();
+    initRevenueCatState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -183,22 +193,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   /* end of Revenue Cat integration */
 
-  void loadSavedFen() async {
-    final savedFen = await DataHelper.getLastFEN();
-    ch.Chess.instance.setFEN(savedFen);
+  void loadConfigs() async {
+    _config = await DataHelper.getConfigs();
     setState(() {
-      fen = savedFen;
-      _selectedMode = [false, false, false];
+      if (_config.isPlaying) {
+        print('Reload the last saved FEN ${_config.fen}');
+        fen = _config.fen;
+        ch.Chess.instance.setFEN(fen);
+      } else {
+        setRandomMode(_config.lastSelectedMode);
+      }
     });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    fen = ChessHelper.generateRandomPosition(RandomizeMode.FULL_RANDOM);
-    ch.Chess.instance.setFEN(fen);
-    //loadSavedFen();
-    initRevenueCatState();
   }
 
   void loadAd() {
@@ -264,25 +269,30 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildChessboard(width) {
     return Chessboard(
-        fen: fen,
-        size: width,
-        darkSquareColor: K_HDI_DARK_RED,
-        lightSquareColor: K_HDI_LIGHT_GREY,
-        orientation: 'w',
-        onMove: (move) {
-          bool moveMade = ch.Chess.instance
-              .move({'from': move.from, 'to': move.to, 'promotion': 'q'});
-          print(
-              "Tried to move from ${move.from} to ${move.to}. Success: $moveMade");
-          if (moveMade) {
-            setState(() {
-              fen = ch.Chess.instance.fen;
-              DataHelper.saveFEN(fen);
-              _playingStarted = true;
-            });
-          }
-          return moveMade;
-        });
+      fen: fen,
+      size: width,
+      darkSquareColor: K_HDI_DARK_RED,
+      lightSquareColor: K_HDI_LIGHT_GREY,
+      orientation: 'w',
+      onMove: _makeChessMove,
+    );
+  }
+
+  bool _makeChessMove(move) {
+    bool moveMade = ch.Chess.instance
+        .move({'from': move.from, 'to': move.to, 'promotion': 'q'});
+    print("Tried to move from ${move.from} to ${move.to}. Success: $moveMade");
+    if (moveMade) {
+      setState(() {
+        fen = ch.Chess.instance.fen;
+
+        _playingStarted = true;
+        _config.isPlaying = true;
+        _config.fen = fen;
+        DataHelper.saveConfigs(_config);
+      });
+    }
+    return moveMade;
   }
 
   Widget _buildPaymentButton() {
@@ -375,14 +385,7 @@ class _MyHomePageState extends State<MyHomePage> {
       icon: Icon(
         Icons.undo,
       ),
-      onPressed: () {
-        ch.Move lastMove = ch.Chess.instance.undo_move();
-        if (lastMove != null) {
-          setState(() {
-            fen = ch.Chess.instance.fen;
-          });
-        }
-      },
+      onPressed: _makeChessUndoMove,
       label: Text("UNDO"),
     ));
 
@@ -406,6 +409,17 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
     );
+  }
+
+  void _makeChessUndoMove() {
+    ch.Move lastMove = ch.Chess.instance.undo_move();
+    if (lastMove != null) {
+      setState(() {
+        fen = ch.Chess.instance.fen;
+        _config.fen = fen;
+        DataHelper.saveConfigs(_config);
+      });
+    }
   }
 
   Widget _buildRandomizerUI({bool vertical = false}) {
@@ -435,22 +449,32 @@ class _MyHomePageState extends State<MyHomePage> {
       ],
       isSelected: _selectedMode,
       onPressed: (int index) {
-        var _newMode = [false, false, false];
-        _newMode[index] = true;
-        setState(() {
-          _selectedMode = _newMode;
-          _playingStarted = false;
-          if (index == 0)
-            fen = ChessHelper.generateRandomPosition(RandomizeMode.FULL_RANDOM);
-          else if (index == 1)
-            fen = ChessHelper.generateRandomPosition(RandomizeMode.FISCHER);
-          else
-            fen = ChessHelper.STANDARD_STARTING_POSITION;
-          ch.Chess.instance.setFEN(fen);
-          DataHelper.saveFEN(fen);
-        });
+        setRandomMode(index);
+        //saveData
+        _config.lastSelectedMode = index;
+        _config.isPlaying = false;
+        _config.boardGenerated++;
+        DataHelper.saveConfigs(_config);
       },
     );
+  }
+
+  void setRandomMode(int modeIndex) {
+    setState(() {
+      print('setRandomMode $modeIndex');
+      var _newMode = [false, false, false];
+      _newMode[modeIndex] = true;
+      _selectedMode = _newMode;
+      _playingStarted = false;
+      if (modeIndex == 0)
+        fen = ChessHelper.generateRandomPosition(RandomizeMode.FULL_RANDOM);
+      else if (modeIndex == 1)
+        fen = ChessHelper.generateRandomPosition(RandomizeMode.FISCHER);
+      else
+        fen = ChessHelper.STANDARD_STARTING_POSITION;
+      ch.Chess.instance.setFEN(fen);
+      _config.fen = fen;
+    });
   }
 
   Widget _builPhoneView() {
