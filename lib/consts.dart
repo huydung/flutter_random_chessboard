@@ -12,7 +12,7 @@ const Color K_HDI_DARK_RED = Color(0xffC66969);
 const Color K_HDI_LIGHT_GREY = Color(0xffD6D6D6);
 const int K_FULLSCREEN_ADS_THRESHOLD = 7;
 
-const String K_DEFAULT_AD_LINK = 'https://www.linkedin.com/in/nguyenhuydung/';
+const String K_DEFAULT_AD_LINK = 'https://www.thinkinhd.com';
 
 const List<String> K_FEN960_LIST = [
   "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w - - 0 1",

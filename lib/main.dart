@@ -9,11 +9,13 @@ import 'helpers.dart';
 import 'consts.dart';
 import 'dart:math' as math;
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+  SystemChrome.setPreferredOrientations(
+          [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown])
       .then((value) => runApp(MyApp()));
 }
 
@@ -60,6 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isPro = false;
   bool _proStatusValidated = false;
   bool _iapPackageAvailableForPurchase = false;
+  bool _isProcessingPurchase = false;
 
   @override
   void initState() {
@@ -86,12 +89,12 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("Random Chess Generator"),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.help),
-            onPressed: () {},
-          )
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: Icon(Icons.help),
+        //     onPressed: () {},
+        //   )
+        // ],
       ),
       body: SingleChildScrollView(
           child: _screenWidth > K_TWO_COLUMN_THRESHOLD
@@ -158,15 +161,15 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  bool _isProcessingPurchase = false;
-
   void _purchaseRemoveAds() async {
     if (_isProcessingPurchase) {
       print(
           '_purchaseRemoveAds() already trying to purchase, click too fast? ');
       return;
     }
-    _isProcessingPurchase = true;
+    setState(() {
+      _isProcessingPurchase = true;
+    });
 
     try {
       PurchaserInfo purchaserInfo =
@@ -190,7 +193,9 @@ class _MyHomePageState extends State<MyHomePage> {
       } else if (errorCode == PurchasesErrorCode.paymentPendingError) {
         print("Payment is pending");
       }
-      _isProcessingPurchase = false;
+      setState(() {
+        _isProcessingPurchase = false;
+      });
     }
   }
 
@@ -281,8 +286,27 @@ class _MyHomePageState extends State<MyHomePage> {
       //     image: AssetImage('assets/img/default_banner.png'),
       //   ),
       // );
-      loadBannerAd();
-      loadFullScreenAd();
+      Widget placeholderAds = Container(
+        width: _adSize.width.toDouble(),
+        //height: _adSize.height.toDouble(),
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTap: () {
+            LinkHelper.launchURL(K_DEFAULT_AD_LINK);
+          },
+          child: Image(
+            image: AssetImage('assets/img/default_banner.png'),
+          ),
+        ),
+      );
+
+      //Show placeholder banner for few seonds during debug, to check the flow and positioning
+
+      Future.delayed(Duration(seconds: kReleaseMode ? 0 : 5)).then((value) {
+        loadBannerAd();
+        loadFullScreenAd();
+      });
+
       if (_isBannerAdLoaded) {
         return Container(
           child: AdWidget(ad: _ad),
@@ -290,14 +314,11 @@ class _MyHomePageState extends State<MyHomePage> {
           height: _ad.size.height.toDouble(),
           alignment: Alignment.center,
         );
+      } else {
+        return placeholderAds;
       }
     }
-    return Container(
-      child: null,
-      width: _adSize.width.toDouble(),
-      height: _adSize.height.toDouble(),
-      alignment: Alignment.center,
-    );
+    return Container();
   }
 
   Widget _buildChessboard(width) {
@@ -330,10 +351,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildPaymentButton() {
     return Visibility(
-      visible: _iapPackageAvailableForPurchase,
-      maintainSize: true,
-      maintainState: true,
-      maintainAnimation: true,
+      visible: _iapPackageAvailableForPurchase && !_isProcessingPurchase,
       child: OutlinedButton.icon(
         style: ButtonStyle(
           foregroundColor: MaterialStateProperty.resolveWith<Color>(
