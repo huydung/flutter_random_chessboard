@@ -29,6 +29,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.red,
       ),
       home: MyHomePage(title: 'Random Chess - Fun Learning'),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -150,7 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _offerings = offerings;
       if (offerings != null) {
-        if (_offerings.current.lifetime != null) {
+        if (_offerings.current != null && _offerings.current.lifetime != null) {
           _iapPackage = _offerings.current.lifetime;
           if (_iapPackage != null) {
             print('Offering available, show it now!');
@@ -562,80 +563,5 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ],
     );
-  }
-
-  Widget _buildTabletView() {
-    // return Column(
-    //   mainAxisSize: MainAxisSize.min,
-    //   children: [
-    //     Row(
-    //       children: [
-    //         Container(
-    //           width: _boardWidth,
-    //           height: _boardWidth,
-    //           child: _buildChessboard(_boardWidth),
-    //         ),
-    //         Container(
-    //           width: K_SECOND_COLIUMN_WIDTH.toDouble(),
-    //           height: _boardWidth,
-    //           child: Column(
-    //             mainAxisAlignment: MainAxisAlignment.spaceAround,
-    //             crossAxisAlignment: CrossAxisAlignment.center,
-    //             children: [
-    //               _buildTurnIndicator(ch.Color.BLACK),
-    //               Expanded(
-    //                   child: Center(child: _buildRandomizerUI(vertical: true))),
-    //               _buildTurnIndicator(ch.Color.WHITE),
-    //             ],
-    //           ),
-    //         )
-    //       ],
-    //     ),
-    //     Divider(height: 20.0),
-    //     _buildBannerAds(),
-    //     _buildPaymentButton()
-    //   ],
-    // );
-    // return Column(
-    //   mainAxisSize: MainAxisSize.min,
-    //   children: [
-    //     Row(
-    //       children: [
-    //         Column(
-    //           mainAxisSize: MainAxisSize.min,
-    //           children: [
-    //             _buildTurnIndicator(ch.Color.BLACK),
-    //             Container(
-    //               width: _boardWidth,
-    //               height: _boardWidth,
-    //               child: _buildChessboard(_boardWidth),
-    //             ),
-    //             _buildTurnIndicator(ch.Color.WHITE),
-    //           ],
-    //         ),
-    //       ],
-    //     ),
-    //     Divider(
-    //       height: 20.0,
-    //     ),
-    //     Row(
-    //       mainAxisAlignment: MainAxisAlignment.center,
-    //       crossAxisAlignment: CrossAxisAlignment.start,
-    //       children: [
-    //         Column(
-    //           crossAxisAlignment: CrossAxisAlignment.end,
-    //           mainAxisAlignment: MainAxisAlignment.spaceAround,
-    //           children: [
-    //             _buildRandomizerUI(),
-    //             SizedBox(height: 10.0),
-    //             _buildPaymentButton(),
-    //           ],
-    //         ),
-    //         SizedBox(width: 10.0),
-    //         _buildBannerAds(),
-    //       ],
-    //     ),
-    //   ],
-    // );
   }
 }
