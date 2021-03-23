@@ -5,6 +5,8 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:randomchesshdi/blinking_dot.dart';
 import 'package:randomchesshdi/chess.dart' as ch;
 import 'package:randomchesshdi/chessboard/chessboard.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:store_redirect/store_redirect.dart';
 import 'helpers.dart';
 import 'consts.dart';
 import 'dart:math' as math;
@@ -49,6 +51,7 @@ class _MyHomePageState extends State<MyHomePage> {
   BannerAd _ad;
   InterstitialAd _fsAd;
 
+  bool _isTablet = false;
   AdSize _adSize;
   bool _isBannerAdLoaded = false;
   bool _isFSAdsLoaded = false;
@@ -80,11 +83,13 @@ class _MyHomePageState extends State<MyHomePage> {
     _screenWidth = MediaQuery.of(context).size.width.toDouble();
     print("_screenWidth = $_screenWidth");
     if (_screenWidth > K_TWO_COLUMN_THRESHOLD) {
+      _isTablet = true;
       _boardWidth = (_screenWidth - K_TABLET_PADDING).toDouble();
-      _adSize = AdSize.fullBanner;
-    } else {
-      _boardWidth = _screenWidth;
       _adSize = AdSize.leaderboard;
+    } else {
+      _isTablet = false;
+      _boardWidth = _screenWidth;
+      _adSize = AdSize.fullBanner;
     }
 
     return Scaffold(
@@ -99,8 +104,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: SingleChildScrollView(
           child: _screenWidth > K_TWO_COLUMN_THRESHOLD
-              ? _builPhoneView()
-              : _builPhoneView()),
+              ? _buildTabletView()
+              : _buildPhoneView()),
     );
   }
 
@@ -128,8 +133,10 @@ class _MyHomePageState extends State<MyHomePage> {
         if (_purchaserInfo.entitlements.active.containsKey(K_ENTITLEMENT_KEY)) {
           print('User purchased the Pro package!');
           _isPro = true;
+          _proStatusValidated = true;
         } else {
           _isPro = false;
+          _proStatusValidated = true;
           print('User did not purchase the Pro package, let try offering it');
           fetchOfferingsData();
         }
@@ -162,6 +169,38 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  void _restorePurchase() async {
+    try {
+      PurchaserInfo restoredInfo = await Purchases.restoreTransactions();
+      _setUserAsPro(restoredInfo);
+    } catch (e) {
+      print('Error restore purchase');
+    }
+  }
+
+  void _setUserAsPro(PurchaserInfo purchaserInfo) {
+    if (purchaserInfo.entitlements.all[K_ENTITLEMENT_KEY] != null) {
+      setState(() {
+        _isPro = purchaserInfo.entitlements.all[K_ENTITLEMENT_KEY].isActive;
+        _proStatusValidated = true;
+        _iapPackageAvailableForPurchase = false;
+        _isProcessingPurchase = false;
+      });
+      print('Set user as Pro user');
+    }
+    if (_isPro) {
+      Alert(
+              context: context,
+              title: "Thank you",
+              type: AlertType.success,
+              style: AlertStyle(
+                  backgroundColor: Colors.white, isButtonVisible: false),
+              desc:
+                  "Your support is much appreciated. All Ads are removed now.")
+          .show();
+    }
+  }
+
   void _purchaseRemoveAds() async {
     if (_isProcessingPurchase) {
       print(
@@ -175,14 +214,7 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       PurchaserInfo purchaserInfo =
           await Purchases.purchasePackage(_iapPackage);
-      setState(() {
-        if (purchaserInfo.entitlements.all[K_ENTITLEMENT_KEY] != null) {
-          _isPro = purchaserInfo.entitlements.all[K_ENTITLEMENT_KEY].isActive;
-          _proStatusValidated = true;
-          _iapPackageAvailableForPurchase = false;
-        }
-      });
-      _isProcessingPurchase = false;
+      _setUserAsPro(purchaserInfo);
     } on PlatformException catch (e) {
       var errorCode = PurchasesErrorHelper.getErrorCode(e);
       print(errorCode);
@@ -279,31 +311,29 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildBannerAds() {
     if (_proStatusValidated && !_isPro) {
       print('_buildBannerAds() should actually start loading Ads now');
-      // Widget widgetAdLoading = GestureDetector(
-      //   onTap: () {
-      //     LinkHelper.launchURL(K_DEFAULT_AD_LINK);
-      //   },
-      //   child: Image(
-      //     image: AssetImage('assets/img/default_banner.png'),
-      //   ),
-      // );
+
       Widget placeholderAds = Container(
         width: _adSize.width.toDouble(),
         //height: _adSize.height.toDouble(),
         alignment: Alignment.center,
         child: GestureDetector(
           onTap: () {
-            LinkHelper.launchURL(K_DEFAULT_AD_LINK);
+            //LinkHelper.launchURL(K_DEFAULT_AD_LINK);
+            StoreRedirect.redirect(
+                iOSAppId: '1558633367',
+                androidAppId: 'com.huydung.randomchess');
           },
           child: Image(
-            image: AssetImage('assets/img/default_banner.png'),
+            image: AssetImage(_isTablet
+                ? 'assets/img/AdSizeLeaderboard.png'
+                : 'assets/img/AdSizeLargeBanner.png'),
           ),
         ),
       );
 
       //Show placeholder banner for few seonds during debug, to check the flow and positioning
 
-      Future.delayed(Duration(seconds: kReleaseMode ? 0 : 5)).then((value) {
+      Future.delayed(Duration(seconds: kReleaseMode ? 0 : 15)).then((value) {
         loadBannerAd();
         loadFullScreenAd();
       });
@@ -351,20 +381,67 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildPaymentButton() {
-    return Visibility(
-      visible: _iapPackageAvailableForPurchase && !_isProcessingPurchase,
-      child: OutlinedButton.icon(
+    if (_iapPackageAvailableForPurchase && !_isProcessingPurchase) {
+      return OutlinedButton.icon(
         style: ButtonStyle(
           foregroundColor: MaterialStateProperty.resolveWith<Color>(
-              (states) => Colors.green[200]),
+              (states) => Colors.brown[100]),
           overlayColor: MaterialStateProperty.resolveWith<Color>(
-              (states) => Colors.green[500]),
+              (states) => Colors.brown[500]),
         ),
-        label: Text('Remove Ads'),
-        icon: Icon(Icons.sentiment_very_satisfied),
+        label: Text('Support Us & Remove Ads'),
+        icon: Icon(
+          Icons.local_cafe,
+          color: Colors.brown[200],
+        ),
         onPressed: _purchaseRemoveAds,
-      ),
-    );
+      );
+    }
+    if (_isPro && _proStatusValidated) {
+      Widget restoreButton = TextButton(
+        onPressed: _restorePurchase,
+        child: Text(
+          'Restore Purchase.',
+          style: TextStyle(
+              color: Colors.grey[500], decoration: TextDecoration.underline),
+        ),
+      );
+
+      Widget heartIcon = Icon(
+        Icons.favorite_sharp,
+        color: Colors.red[700],
+      );
+      if (_isTablet) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            heartIcon,
+            Text(
+              ' Thank you for the support! If ads are still showing, please try',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            restoreButton
+          ],
+        );
+      } else {
+        return Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                heartIcon,
+                Text(
+                  ' Thank you for the support!\n If ads are still showing, please try',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ],
+            ),
+            restoreButton,
+          ],
+        );
+      }
+    }
+    return Container();
   }
 
   Widget _buildTurnIndicator(ch.Color forSide) {
@@ -508,7 +585,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _config.boardGenerated++;
         DataHelper.saveConfigs(_config);
         if (_config.boardGenerated % K_FULLSCREEN_ADS_THRESHOLD == 0) {
-          if (_isFSAdsLoaded) {
+          if (_isFSAdsLoaded && !_isPro) {
             _fsAd.show();
           }
         }
@@ -534,7 +611,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Widget _builPhoneView() {
+  Widget _buildPhoneView() {
     return Column(
       children: [
         Column(
@@ -557,7 +634,39 @@ class _MyHomePageState extends State<MyHomePage> {
               height: 20.0,
             ),
             (_proStatusValidated && !_isPro) ? _buildBannerAds() : Container(),
-            //_buildBannerAds(),
+            _buildPaymentButton(),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabletView() {
+    return Column(
+      children: [
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+                  width: _boardWidth,
+                  child: Column(
+                    children: [
+                      _buildTurnIndicator(ch.Color.BLACK),
+                      _buildChessboard(_boardWidth),
+                      _buildTurnIndicator(ch.Color.WHITE),
+                    ],
+                  ),
+                ),
+                _buildRandomizerUI(vertical: true),
+              ],
+            ),
+            Divider(
+              height: 20.0,
+            ),
+            (_proStatusValidated && !_isPro) ? _buildBannerAds() : Container(),
             _buildPaymentButton(),
           ],
         ),

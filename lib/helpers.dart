@@ -2,20 +2,20 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:randomchesshdi/consts.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart';
 
-class LinkHelper {
-  static void launchURL(String url) async {
-    //const url = 'https://flutter.dev';
-    if (await canLaunch(url) != null) {
-      await launch(url);
-    } else {
-      throw 'Could not launch $url';
-    }
-  }
-}
+// class LinkHelper {
+//   static void launchURL(String url) async {
+//     //const url = 'https://flutter.dev';
+//     if (await canLaunch(url) != null) {
+//       await launch(url);
+//     } else {
+//       throw 'Could not launch $url';
+//     }
+//   }
+// }
 
 class ConfigStruct {
   String fen = ChessHelper.STANDARD_STARTING_POSITION;
