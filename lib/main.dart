@@ -89,7 +89,7 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       _isTablet = false;
       _boardWidth = _screenWidth;
-      _adSize = AdSize.fullBanner;
+      _adSize = AdSize.largeBanner;
     }
 
     return Scaffold(
@@ -151,6 +151,8 @@ class _MyHomePageState extends State<MyHomePage> {
       offerings = await Purchases.getOfferings();
     } on PlatformException catch (e) {
       print(e);
+      _showStatus(e.message);
+      return;
     }
 
     if (!mounted) return;
@@ -163,18 +165,35 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_iapPackage != null) {
             print('Offering available, show it now!');
             _iapPackageAvailableForPurchase = true;
+            return;
           }
         }
       }
     });
+
+    _showStatus("Fail to get offering from revenuecat.");
+  }
+
+  void _showStatus(text) {
+    final snackBar = SnackBar(content: Text(text));
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   void _restorePurchase() async {
+    _showStatus('Restoring your purchases, if any...');
+    setState(() {
+      _isProcessingPurchase = true;
+    });
     try {
       PurchaserInfo restoredInfo = await Purchases.restoreTransactions();
       _setUserAsPro(restoredInfo);
+      setState(() {
+        _isProcessingPurchase = false;
+      });
     } catch (e) {
       print('Error restore purchase');
+      _showStatus(
+          'Can not restore purchases. Please check your account details, internet connections, and payment history, or try again later.');
     }
   }
 
@@ -207,6 +226,7 @@ class _MyHomePageState extends State<MyHomePage> {
           '_purchaseRemoveAds() already trying to purchase, click too fast? ');
       return;
     }
+    _showStatus('Preparing your purchase');
     setState(() {
       _isProcessingPurchase = true;
     });
@@ -226,6 +246,8 @@ class _MyHomePageState extends State<MyHomePage> {
       } else if (errorCode == PurchasesErrorCode.paymentPendingError) {
         print("Payment is pending");
       }
+      _showStatus(
+          'There was an error processing your purchase. Please wait a few minutes and try again.');
       setState(() {
         _isProcessingPurchase = false;
       });
@@ -380,64 +402,89 @@ class _MyHomePageState extends State<MyHomePage> {
     return moveMade;
   }
 
-  Widget _buildPaymentButton() {
+  Widget _buildPaymentWidget() {
+    Widget restoreButton = TextButton(
+      onPressed: _restorePurchase,
+      child: Text(
+        'Restore Purchase.',
+        style: TextStyle(
+            color: Colors.grey[500], decoration: TextDecoration.underline),
+      ),
+    );
+
+    Widget heartIcon = Icon(
+      Icons.favorite_sharp,
+      color: Colors.red[700],
+    );
+
     if (_iapPackageAvailableForPurchase && !_isProcessingPurchase) {
-      return OutlinedButton.icon(
-        style: ButtonStyle(
-          foregroundColor: MaterialStateProperty.resolveWith<Color>(
-              (states) => Colors.brown[100]),
-          overlayColor: MaterialStateProperty.resolveWith<Color>(
-              (states) => Colors.brown[500]),
-        ),
-        label: Text('Support Us & Remove Ads'),
-        icon: Icon(
-          Icons.local_cafe,
-          color: Colors.brown[200],
-        ),
-        onPressed: _purchaseRemoveAds,
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          OutlinedButton.icon(
+            style: ButtonStyle(
+              foregroundColor: MaterialStateProperty.resolveWith<Color>(
+                  (states) => Colors.brown[100]),
+              overlayColor: MaterialStateProperty.resolveWith<Color>(
+                  (states) => Colors.brown[500]),
+            ),
+            label: Text('Remove Ads'),
+            icon: Icon(
+              Icons.favorite_border_outlined,
+              color: Colors.red[700],
+            ),
+            onPressed: _purchaseRemoveAds,
+          ),
+          restoreButton,
+        ],
       );
     }
     if (_isPro && _proStatusValidated) {
-      Widget restoreButton = TextButton(
-        onPressed: _restorePurchase,
-        child: Text(
-          'Restore Purchase.',
-          style: TextStyle(
-              color: Colors.grey[500], decoration: TextDecoration.underline),
-        ),
-      );
-
-      Widget heartIcon = Icon(
-        Icons.favorite_sharp,
-        color: Colors.red[700],
-      );
       if (_isTablet) {
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             heartIcon,
             Text(
-              ' Thank you for the support! If ads are still showing, please try',
+              ' Thank you for the support! If you still see ads, please try',
               style: TextStyle(color: Colors.grey[600]),
             ),
             restoreButton
           ],
         );
       } else {
-        return Column(
-          children: [
-            Row(
+        return FittedBox(
+          fit: BoxFit.none,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.0),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                heartIcon,
-                Text(
-                  ' Thank you for the support!\n If ads are still showing, please try',
-                  style: TextStyle(color: Colors.grey[600]),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    heartIcon,
+                    Text(
+                      ' Thank you for the support!',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 5.0,
+                    ),
+                    Text(
+                      'If you still see ads, please',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    restoreButton,
+                  ],
+                )
               ],
             ),
-            restoreButton,
-          ],
+          ),
         );
       }
     }
@@ -634,7 +681,7 @@ class _MyHomePageState extends State<MyHomePage> {
               height: 20.0,
             ),
             (_proStatusValidated && !_isPro) ? _buildBannerAds() : Container(),
-            _buildPaymentButton(),
+            _buildPaymentWidget(),
           ],
         ),
       ],
@@ -660,14 +707,14 @@ class _MyHomePageState extends State<MyHomePage> {
                     ],
                   ),
                 ),
-                _buildRandomizerUI(vertical: true),
               ],
             ),
+            _buildRandomizerUI(vertical: false),
             Divider(
               height: 20.0,
             ),
             (_proStatusValidated && !_isPro) ? _buildBannerAds() : Container(),
-            _buildPaymentButton(),
+            _buildPaymentWidget(),
           ],
         ),
       ],

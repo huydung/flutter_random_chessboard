@@ -6,7 +6,7 @@ const int K_PHONE_WIDTH_PX = 420;
 const int K_TWO_COLUMN_THRESHOLD =
     728; //reference from AdMob AdSize.Leaderboard
 const String K_ENTITLEMENT_KEY = "Pro - Remove Ads";
-const int K_TABLET_PADDING = 200;
+const int K_TABLET_PADDING = 160;
 enum RandomizeMode { FULL_RANDOM, FISCHER }
 const Color K_HDI_DARK_RED = Color(0xffC66969);
 const Color K_HDI_LIGHT_GREY = Color(0xffD6D6D6);
