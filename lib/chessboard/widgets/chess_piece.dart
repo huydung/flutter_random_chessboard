@@ -2,6 +2,7 @@ import 'package:chess_vectors_flutter/chess_vectors_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:randomchesshdi/chess.dart' as ch;
 import '../types.dart';
+import '../../utils/AppConfig.dart';
 import 'square.dart';
 import 'dart:math' as math;
 
@@ -120,7 +121,7 @@ class _ChessPieceState extends State<ChessPiece> with TickerProviderStateMixin {
     } else {
       if (widget.piece.color == 'b') {
         pieceWidget = Transform.rotate(
-          angle: math.pi,
+          angle: AppConfig.optimizeTwoPlayersUX ? math.pi : 0,
           child: pieceWidget,
         );
       }
