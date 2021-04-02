@@ -2,20 +2,33 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:randomchesshdi/blinking_dot.dart';
+import 'package:randomchesshdi/views/blinking_dot.dart';
 import 'package:randomchesshdi/chess.dart' as ch;
 import 'package:randomchesshdi/chessboard/chessboard.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:store_redirect/store_redirect.dart';
-import 'helpers.dart';
+import 'package:universal_platform/universal_platform.dart';
+import 'utils/helpers.dart';
 import 'consts.dart';
 import 'dart:math' as math;
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter/foundation.dart';
 
+bool appShouldShowAds = true;
+bool appShouldShowIAP = true;
+
 void main() {
+  if (kIsWeb) {
+    appShouldShowAds = false;
+    appShouldShowIAP = false;
+  }
+
   WidgetsFlutterBinding.ensureInitialized();
-  MobileAds.instance.initialize();
+
+  if (appShouldShowAds) {
+    MobileAds.instance.initialize();
+  }
+
   SystemChrome.setPreferredOrientations(
           [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown])
       .then((value) => runApp(MyApp()));
@@ -56,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool _isBannerAdLoaded = false;
   bool _isFSAdsLoaded = false;
   double _screenWidth = 320;
+  double _screenHeight = 640;
   double _boardWidth = 320;
 
   bool _playingStarted = false;
@@ -75,22 +89,35 @@ class _MyHomePageState extends State<MyHomePage> {
     ch.Chess.instance.setFEN(fen);
     loadConfigs();
     //loadSavedFen();
-    initRevenueCatState();
+    if (appShouldShowAds) initRevenueCatState();
   }
 
   @override
   Widget build(BuildContext context) {
     _screenWidth = MediaQuery.of(context).size.width.toDouble();
-    print("_screenWidth = $_screenWidth");
-    if (_screenWidth > K_TWO_COLUMN_THRESHOLD) {
-      _isTablet = true;
-      _boardWidth = (_screenWidth - K_TABLET_PADDING).toDouble();
-      _adSize = AdSize.leaderboard;
+    _screenHeight = MediaQuery.of(context).size.height.toDouble();
+    print("_screenWidth = $_screenWidth, _screenHeight = $_screenHeight");
+    if (_screenWidth > _screenHeight) {
+      _boardWidth = _screenHeight - K_TABLET_PADDING;
     } else {
-      _isTablet = false;
-      _boardWidth = _screenWidth;
-      _adSize = AdSize.largeBanner;
+      if (_screenWidth > K_IPAD_PORTRAIT) {
+        _isTablet = true;
+        _boardWidth = (_screenWidth - K_TABLET_PADDING).toDouble();
+        _adSize = AdSize.leaderboard;
+      } else {
+        _isTablet = false;
+        _boardWidth = _screenWidth;
+        _adSize = AdSize.largeBanner;
+      }
     }
+
+    Widget bodyWidget;
+
+    bodyWidget = _screenWidth > K_LANDSCAPE_WEB
+        ? _buildWebLandscapeView()
+        : _screenWidth > K_IPAD_PORTRAIT
+            ? _buildTabletView()
+            : _buildPhoneView();
 
     return Scaffold(
       appBar: AppBar(
@@ -103,9 +130,8 @@ class _MyHomePageState extends State<MyHomePage> {
         // ],
       ),
       body: SingleChildScrollView(
-          child: _screenWidth > K_TWO_COLUMN_THRESHOLD
-              ? _buildTabletView()
-              : _buildPhoneView()),
+        child: bodyWidget,
+      ),
     );
   }
 
@@ -177,6 +203,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void _showStatus(text) {
     final snackBar = SnackBar(content: Text(text));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
+    //Get.snackbar(text, '');
   }
 
   void _restorePurchase() async {
@@ -217,6 +244,11 @@ class _MyHomePageState extends State<MyHomePage> {
               desc:
                   "Your support is much appreciated. All Ads are removed now.")
           .show();
+      // Get.defaultDialog(
+      //   title: "Thank you",
+      //   content:
+      //       Text("Your support is much appreciated. All Ads are removed now."),
+      // );
     }
   }
 
@@ -331,7 +363,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildBannerAds() {
-    if (_proStatusValidated && !_isPro) {
+    if (appShouldShowAds && _proStatusValidated && !_isPro) {
       print('_buildBannerAds() should actually start loading Ads now');
 
       Widget placeholderAds = Container(
@@ -343,7 +375,7 @@ class _MyHomePageState extends State<MyHomePage> {
             //LinkHelper.launchURL(K_DEFAULT_AD_LINK);
             StoreRedirect.redirect(
                 iOSAppId: '1558633367',
-                androidAppId: 'com.huydung.randomchess');
+                androidAppId: 'com.thinkinhd.randomchess');
           },
           child: Image(
             image: AssetImage(_isTablet
@@ -492,7 +524,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildTurnIndicator(ch.Color forSide) {
-    double rotationAngle = forSide == ch.Color.BLACK ? math.pi : 0;
+    bool explicitName = false;
+    bool rotateBlack = true;
+    if (!(UniversalPlatform.isIOS || UniversalPlatform.isAndroid)) {
+      explicitName = true;
+      rotateBlack = false;
+    }
+
+    double rotationAngle =
+        rotateBlack ? (forSide == ch.Color.BLACK ? math.pi : 0) : 0;
+    String name =
+        explicitName ? (forSide == ch.Color.BLACK ? 'BLACK' : 'WHITE') : 'YOU';
+    String nameAdj = explicitName
+        ? (forSide == ch.Color.BLACK ? 'BLACK\'S' : 'WHITE\'S')
+        : 'YOUR';
     List<Widget> turnIndicators;
     if (ch.Chess.instance.in_checkmate) {
       if (forSide == ch.Chess.instance.turn) {
@@ -506,7 +551,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Expanded(
             child: Text(
-              "YOU LOSE!",
+              "$name LOSE!",
               style: TextStyle(fontSize: 18.0),
             ),
           ),
@@ -522,7 +567,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Expanded(
             child: Text(
-              "YOU WON!",
+              "$name WON!",
               style: TextStyle(fontSize: 18.0),
             ),
           ),
@@ -540,7 +585,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Expanded(
             child: Text(
-              "YOUR TURN",
+              "$nameAdj TURN",
               style: TextStyle(fontSize: 18.0),
             ),
           ),
@@ -715,6 +760,39 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             (_proStatusValidated && !_isPro) ? _buildBannerAds() : Container(),
             _buildPaymentWidget(),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWebLandscapeView() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildRandomizerUI(vertical: false),
+        SizedBox(
+          width: 20.0,
+        ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Container(
+                  width: _boardWidth,
+                  child: Column(
+                    children: [
+                      _buildTurnIndicator(ch.Color.BLACK),
+                      _buildChessboard(_boardWidth),
+                      _buildTurnIndicator(ch.Color.WHITE),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ],

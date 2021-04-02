@@ -181,7 +181,8 @@ class AdHelper {
     'prod': {
       'android': {
         'banner': 'ca-app-pub-4757047581054358/7600361025',
-        'native': 'ca-app-pub-4757047581054358/8712463846'
+        'native': 'ca-app-pub-4757047581054358/8712463846',
+        'fullscreen': 'ca-app-pub-4757047581054358~8913442698',
       },
       'apple': {
         'banner': 'ca-app-pub-4757047581054358/2338627183',

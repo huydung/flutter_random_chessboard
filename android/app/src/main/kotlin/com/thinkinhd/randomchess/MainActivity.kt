@@ -1,4 +1,4 @@
-package com.example.randomchesshdi
+package com.thinkinhd.randomchess
 
 import io.flutter.embedding.android.FlutterActivity
 
