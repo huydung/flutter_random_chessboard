@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 const int PIXELS_PER_CM = 38;
 const int PHONE_WIDTH_CM = 9;
 const int K_PHONE_WIDTH_PX = 420;
-const int K_IPAD_PORTRAIT = 728;
+const int K_NEEDS_BIG_ADS = 728;
 const int K_LANDSCAPE_WEB = 800;
 const String K_ENTITLEMENT_KEY = "Pro - Remove Ads";
 const int K_TABLET_PADDING = 160;

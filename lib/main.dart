@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:randomchesshdi/utils/platfom_info.dart';
 import 'package:randomchesshdi/views/blinking_dot.dart';
 import 'package:randomchesshdi/chess.dart' as ch;
 import 'package:randomchesshdi/chessboard/chessboard.dart';
@@ -14,18 +15,10 @@ import 'dart:math' as math;
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter/foundation.dart';
 
-bool appShouldShowAds = true;
-bool appShouldShowIAP = true;
-
 void main() {
-  if (kIsWeb) {
-    appShouldShowAds = false;
-    appShouldShowIAP = false;
-  }
-
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (appShouldShowAds) {
+  if (AppConfig.supportAds) {
     MobileAds.instance.initialize();
   }
 
@@ -64,12 +57,9 @@ class _MyHomePageState extends State<MyHomePage> {
   BannerAd _ad;
   InterstitialAd _fsAd;
 
-  bool _isTablet = false;
   AdSize _adSize;
   bool _isBannerAdLoaded = false;
   bool _isFSAdsLoaded = false;
-  double _screenWidth = 320;
-  double _screenHeight = 640;
   double _boardWidth = 320;
 
   bool _playingStarted = false;
@@ -89,35 +79,21 @@ class _MyHomePageState extends State<MyHomePage> {
     ch.Chess.instance.setFEN(fen);
     loadConfigs();
     //loadSavedFen();
-    if (appShouldShowAds) initRevenueCatState();
+    if (AppConfig.supportIAP) {
+      initRevenueCatState();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    _screenWidth = MediaQuery.of(context).size.width.toDouble();
-    _screenHeight = MediaQuery.of(context).size.height.toDouble();
-    print("_screenWidth = $_screenWidth, _screenHeight = $_screenHeight");
-    if (_screenWidth > _screenHeight) {
-      _boardWidth = _screenHeight - K_TABLET_PADDING;
-    } else {
-      if (_screenWidth > K_IPAD_PORTRAIT) {
-        _isTablet = true;
-        _boardWidth = (_screenWidth - K_TABLET_PADDING).toDouble();
-        _adSize = AdSize.leaderboard;
-      } else {
-        _isTablet = false;
-        _boardWidth = _screenWidth;
-        _adSize = AdSize.largeBanner;
-      }
-    }
+    AppConfig.update(MediaQuery.of(context));
+    _boardWidth = AppConfig.boardWidth;
+    _adSize = AppConfig.isBigAds ? AdSize.leaderboard : AdSize.largeBanner;
 
     Widget bodyWidget;
 
-    bodyWidget = _screenWidth > K_LANDSCAPE_WEB
-        ? _buildWebLandscapeView()
-        : _screenWidth > K_IPAD_PORTRAIT
-            ? _buildTabletView()
-            : _buildPhoneView();
+    bodyWidget =
+        AppConfig.isLandscape ? _buildLandscapeView() : _buildPortraitView();
 
     return Scaffold(
       appBar: AppBar(
@@ -142,6 +118,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Package _iapPackage;
 
   Future<void> initRevenueCatState() async {
+    if (!AppConfig.supportIAP) return;
+
     await Purchases.setDebugLogsEnabled(true);
     await Purchases.setup("XrqNInJynDtEdaZCxRDmDJURILfaxmMi");
     PurchaserInfo purchaserInfo = await Purchases.getPurchaserInfo();
@@ -171,6 +149,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> fetchOfferingsData() async {
+    if (!AppConfig.supportIAP) return;
+
     print('Load available offerings');
     Offerings offerings;
     try {
@@ -207,6 +187,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _restorePurchase() async {
+    if (!AppConfig.supportIAP) return;
+
     _showStatus('Restoring your purchases, if any...');
     setState(() {
       _isProcessingPurchase = true;
@@ -225,6 +207,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _setUserAsPro(PurchaserInfo purchaserInfo) {
+    if (!AppConfig.supportIAP) return;
+
     if (purchaserInfo.entitlements.all[K_ENTITLEMENT_KEY] != null) {
       setState(() {
         _isPro = purchaserInfo.entitlements.all[K_ENTITLEMENT_KEY].isActive;
@@ -253,6 +237,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _purchaseRemoveAds() async {
+    if (!AppConfig.supportIAP) return;
+
     if (_isProcessingPurchase) {
       print(
           '_purchaseRemoveAds() already trying to purchase, click too fast? ');
@@ -295,6 +281,7 @@ class _MyHomePageState extends State<MyHomePage> {
         print('Reload the last saved FEN ${_config.fen}');
         fen = _config.fen;
         ch.Chess.instance.setFEN(fen);
+        _playingStarted = true;
       } else {
         setRandomMode(_config.lastSelectedMode);
       }
@@ -302,6 +289,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void loadFullScreenAd() {
+    if (!AppConfig.supportAds) return;
+
     print('loadFullScreenAd is called');
     if (_fsAd == null) {
       print('Start actually loading full screen ad');
@@ -330,6 +319,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void loadBannerAd() {
+    if (!AppConfig.supportAds) return;
+
     print("_loadAd is called");
     if (_ad == null) {
       print("Start loading Ads");
@@ -358,12 +349,13 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _ad?.dispose();
     _fsAd?.dispose();
-    //_subscription?.cancel();
     super.dispose();
   }
 
   Widget _buildBannerAds() {
-    if (appShouldShowAds && _proStatusValidated && !_isPro) {
+    if (!AppConfig.supportAds) return Container();
+
+    if (_proStatusValidated && !_isPro) {
       print('_buildBannerAds() should actually start loading Ads now');
 
       Widget placeholderAds = Container(
@@ -378,7 +370,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 androidAppId: 'com.thinkinhd.randomchess');
           },
           child: Image(
-            image: AssetImage(_isTablet
+            image: AssetImage(AppConfig.isBigAds
                 ? 'assets/img/AdSizeLeaderboard.png'
                 : 'assets/img/AdSizeLargeBanner.png'),
           ),
@@ -435,6 +427,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Widget _buildPaymentWidget() {
+    if (!AppConfig.supportIAP) return Container();
+
     Widget restoreButton = TextButton(
       onPressed: _restorePurchase,
       child: Text(
@@ -472,7 +466,7 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     }
     if (_isPro && _proStatusValidated) {
-      if (_isTablet) {
+      if (AppConfig.isBigAds) {
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -526,7 +520,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildTurnIndicator(ch.Color forSide) {
     bool explicitName = false;
     bool rotateBlack = true;
-    if (!(UniversalPlatform.isIOS || UniversalPlatform.isAndroid)) {
+    if (!AppConfig.optimizeTwoPlayersUX) {
       explicitName = true;
       rotateBlack = false;
     }
@@ -616,7 +610,7 @@ class _MyHomePageState extends State<MyHomePage> {
       maintainState: true,
       visible: _playingStarted,
       child: Container(
-        width: _screenWidth,
+        width: double.infinity,
         padding: EdgeInsets.symmetric(
           vertical: 0.0,
           horizontal: 15.0,
@@ -703,7 +697,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  Widget _buildPhoneView() {
+  Widget _buildPortraitView() {
+    print('Build Portrait View');
     return Column(
       children: [
         Column(
@@ -733,45 +728,13 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildTabletView() {
-    return Column(
-      children: [
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Container(
-                  width: _boardWidth,
-                  child: Column(
-                    children: [
-                      _buildTurnIndicator(ch.Color.BLACK),
-                      _buildChessboard(_boardWidth),
-                      _buildTurnIndicator(ch.Color.WHITE),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            _buildRandomizerUI(vertical: false),
-            Divider(
-              height: 20.0,
-            ),
-            (_proStatusValidated && !_isPro) ? _buildBannerAds() : Container(),
-            _buildPaymentWidget(),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWebLandscapeView() {
+  Widget _buildLandscapeView() {
+    print('Build Landscape View');
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildRandomizerUI(vertical: false),
+        _buildRandomizerUI(vertical: true),
         SizedBox(
           width: 20.0,
         ),
